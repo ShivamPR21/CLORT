@@ -17,4 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import argoverse as avs
 import torch
-from torchvision.datasets import VisionDataset
+
+
+class ContrastiveLearningTracking():
+    pass
