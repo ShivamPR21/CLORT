@@ -15,28 +15,5 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 '''
 
-from queue import Queue
-from typing import Any, bool
-
-
-class ModifiedQueue(Queue):
-
-    def __init__(self, maxsize: int = 10, item = None) -> None:
-        super().__init__(maxsize=maxsize)
-        if (item) : self.put(item)
-
-    def put(self, item) -> bool:
-        if (super().full()) :
-            super().get()
-        super().put(item)
-
-    def get(self) :
-        if (super().empty()):
-            return None
-        super().get()
-
-    def __getitem__(self, key : int) -> Any:
-        if (super().qsize() > abs(key)):
-            return super()[key]
-
-        return None
+from .data import *
+from .models import *

@@ -15,11 +15,11 @@ setup(
     version = "0.0.1",
     author = "Shivam Pandey",
     author_email = "pandeyshivam2017robotics@gmail.com",
-    description = ("Python implementation of Contrastive Learning based Online Realtime 3D Tracking."),
+    description = ("Python implementation of Contrastive Learning for 3D Tracking feature extraction."),
     license = "AGPLv3",
     keywords = "DeepLearning Pytorch Modules",
     url = "https://github.com/ShivamPR21/CLORT.git",
-    packages=['clearn', 'data', 'pyclort', 'pointslearn'],
+    packages=['clort', 'clort.clearn'],
     long_description=read('README.md'),
     classifiers=[
         "Development Status :: Alpha",
