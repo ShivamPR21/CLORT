@@ -55,7 +55,7 @@ def get_object_patch_from_image(
         planes: List[Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]],
         camera_config: CameraConfig,
         central_patch: bool = True,
-        ww : Tuple[float, float] = (0.6, 0.6)
+        ww: Tuple[float, float] = (0.6, 0.6)
     ) -> np.ndarray:
         r"""We bring the 3D points into each camera, and do the clipping there.
 

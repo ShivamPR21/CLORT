@@ -15,7 +15,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 '''
 
-from typing import Any, Callable, List, Tuple
+from typing import Any, Callable, Dict, List, Tuple
 
 import numpy as np
 import torch
@@ -41,7 +41,8 @@ class ContrastiveLearningTracking(ArgoverseDataset):
                  discard_invalid_dfs: bool = True,
                  dataframe_augmentation: bool = True,
                  augmentation_frames: int = 4,
-                 img_reshape: Tuple[int, int] = (200, 200)) -> None:
+                 img_reshape: Tuple[int, int] = (200, 200),
+                 ids_repeat: int = 200) -> None:
         super().__init__(root, log_id, max_tracklets, occlusion_thresh, lidar_points_thresh, image_size_threshold,
                          n_img_view_thresh, n_img_view_aug, aug_transforms, central_crop, img_tr_ww,
                          discard_invalid_dfs, dataframe_augmentation, augmentation_frames, img_reshape)
@@ -52,6 +53,8 @@ class ContrastiveLearningTracking(ArgoverseDataset):
         self.track_ids = None
         self.valid_track_ids = None
         self.n_valid = None
+        self.ids_repeat = ids_repeat
+        self.valid_track_ids_int_map: Dict[str, int] = {}
 
     def dataset_init(self, log_idx: int, frames_upto:int = None) -> None:
         super().dataset_init(log_idx)
@@ -60,25 +63,35 @@ class ContrastiveLearningTracking(ArgoverseDataset):
         self.track_ids = list(self.tracking_queue.keys())
         self.valid_track_ids = []
         self.discard_invalid_tracks()
-        self.n_valid = self.valid_track_ids.__len__()
+        self.valid_track_ids_int_map = {track_id: i for i, track_id in enumerate(self.valid_track_ids)}
+        self.valid_track_ids = self.valid_track_ids*self.ids_repeat
+        self.n_valid = len(self.valid_track_ids)
 
     def __getitem__(self, index: Any) -> Any:
         # Get the track ids
-        data : List[Tuple[torch.Tensor, torch.Tensor]] = []
+        img_data, pcd_data = [], []
 
-        track_id = self.track_ids[index]
-        rand_track_ids = np.arange(self.tracking_queue[track_id].__len__())
+        track_id = self.valid_track_ids[index]
+        rand_track_ids = np.arange(len(self.tracking_queue[track_id]))
 
-        if self.aug_per_track < rand_track_ids.__len__():
-            rand_track_ids = np.random.choice(rand_track_ids, self.max_frames_per_track, replace=False)
+        if self.aug_per_track < len(rand_track_ids):
+            rand_track_ids = np.random.choice(rand_track_ids, self.aug_per_track, replace=False)
 
         for id in rand_track_ids:
             df = self.tracking_queue[track_id][id]
-            imgs_ = torch.cat(tuple(df.img_data), dim=0)
-            pcd = torch.as_tensor(df.get_lidar(), dtype=torch.float32)
-            data += [[imgs_, pcd]]
+            imgs_ = torch.cat(tuple(df.img_data), dim=0).unsqueeze(dim=0)
+            pcd = df.get_lidar()
+            idx = np.random.choice(len(pcd), self.lidar_points_thresh, replace=False)
+            pcd = torch.as_tensor(pcd[idx], dtype=torch.float32).unsqueeze(dim=0)
+            img_data += [imgs_]
+            pcd_data += [pcd]
 
-        return data, track_id
+        img_data = torch.cat(tuple(img_data), dim=0)
+        pcd_data = torch.cat(tuple(pcd_data), dim=0)
+        pcd_data = pcd_data.transpose(2, 1)
+
+        track_id = torch.as_tensor([self.valid_track_ids_int_map[track_id]]*len(rand_track_ids), dtype=torch.int32)
+        return img_data, pcd_data, track_id
 
     def __len__(self) -> int:
         return self.n_valid
