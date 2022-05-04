@@ -1,13 +1,13 @@
 #!/bin/bash
-#SBATCH --job-name="Model-Verification"
+#SBATCH --job-name="Dataloader-testing@CLORT"
 
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=3
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=128gb
 
-#SBATCH --error=job.clearn_train_v1.err
-#SBATCH --output=job.clearn_train_v1.out
+#SBATCH --error=job.clearn_dl_test_v1.err
+#SBATCH --output=job.clearn_dl_test_v1.out
 
 #SBATCH --time=01:00:00
 #SBATCH --partition=standard
