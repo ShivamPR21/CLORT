@@ -2,14 +2,14 @@
 #SBATCH --job-name="Model-Verification"
 
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=2
+#SBATCH --ntasks-per-node=3
 #SBATCH --cpus-per-task=8
-#SBATCH --mem=16gb
+#SBATCH --mem=128gb
 
 #SBATCH --error=job.clearn_train_v1.err
 #SBATCH --output=job.clearn_train_v1.out
 
-#SBATCH --time=00:50:00
+#SBATCH --time=04:00:00
 #SBATCH --partition=standard
 
 module load compiler/gcc/7.3.0 compiler/intel compiler/cuda compiler/cudnn
