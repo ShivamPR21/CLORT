@@ -33,7 +33,6 @@ unset __conda_setup
 
 conda activate ShivamPR21
 which python
-nvidia-smi
 
 data_dir=$HOME/argoverse_dataset/train_1/argoverse-tracking/train1
 script_path=$HOME/research/CLORT/scripts
