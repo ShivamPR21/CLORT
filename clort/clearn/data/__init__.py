@@ -16,4 +16,5 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 '''
 
 from .argoversedataset import ArgoverseDataset
+from .cltracking import ContrastiveLearningTracking
 from .dataframe import ArgoverseDataFrame, ArgoverseObjectDataFrame

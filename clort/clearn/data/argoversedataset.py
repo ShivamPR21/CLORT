@@ -81,8 +81,9 @@ class ArgoverseDataset(Dataset):
 
     def pre_load_tracking_frames(self, frames_upto:int):
         n_frames = self.n_frames
-        if not frames_upto is None:
-            n_frames = min(frames_upto, n_frames)
+        if frames_upto is not None:
+            if frames_upto != -1:
+                n_frames = min(frames_upto, n_frames)
 
         for i in range(n_frames):
             self.load_data_frame(i)

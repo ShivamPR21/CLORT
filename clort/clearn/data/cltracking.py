@@ -67,6 +67,10 @@ class ContrastiveLearningTracking(ArgoverseDataset):
         self.valid_track_ids = self.valid_track_ids*self.ids_repeat
         self.n_valid = len(self.valid_track_ids)
 
+    def repeat_tracks(self, ids_repeat: int):
+        self.valid_track_ids = self.valid_track_ids*ids_repeat
+        self.n_valid = len(self.valid_track_ids)
+
     def __getitem__(self, index: Any) -> Any:
         # Get the track ids
         img_data, pcd_data = [], []
