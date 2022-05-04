@@ -15,6 +15,6 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 '''
 
-from .l1enc import Level1Encoder
+from .l1enc import VisualEncoder
 
-__all__ = ('Level1Encoder',)
+__all__ = ('VisualEncoder',)

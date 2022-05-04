@@ -11,7 +11,7 @@ from moduleZoo import (
 )
 
 
-class Level1Encoder(nn.Module):
+class VisualEncoder(nn.Module):
 
     def __init__(self, in_channels: int = 21, img_size: Tuple[int, int] = (256, 256)) -> None:
         super().__init__()
