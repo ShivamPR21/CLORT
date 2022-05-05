@@ -81,7 +81,7 @@ class ArgoverseObjectDataFrame(ArgoverseDataFrame):
             while (self.img_data.__len__() < self.n_images):
                 # Convert to tensor
                 loc_img = torch.as_tensor(self.img_data[np.random.randint(0, n_imgs)], dtype=torch.float32)
-                tr = transforms[np.random.randint(0, transforms.__len__())]
+                tr = transforms[np.random.randint(0, len(transforms))]
                 loc_img = tr(loc_img)
                 self.img_data += [loc_img]
 

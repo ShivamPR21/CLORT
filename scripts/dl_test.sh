@@ -41,6 +41,6 @@ out_dir=$HOME/research/clort_results
 mkdir -p $out_dir && cd $out_dir
 
 #python $HOME/collect_env.py
-python -m cProfile -o $out_dir/dataloader_test.stats $script_path/dataloader_test.py $data_dir --batch_size 128 \
+python -m cProfile $script_path/dataloader_test.py $data_dir --batch_size 128 \
 --n_epochs 10 --n_itr_logs 10 --log_id 0 --n_frames -1 --n_augs 5 --vis_loss_w 0.7 --pcl_loss_w 0.7 --enc_loss_w 1.0 \
---vis_lr 0.0007 --pcl_lr 0.0007 --enc_lr 0.0003 --itr_log_ln 10 --epoch_log_ln 1 --preload_model_path ''
+--vis_lr 0.0007 --pcl_lr 0.0007 --enc_lr 0.0003 --itr_log_ln 10 --epoch_log_ln 1 --preload_model_path '' > $out_dir/dataloader_test.txt

@@ -19,6 +19,7 @@ from typing import Any, Callable, Dict, List, Tuple
 
 import numpy as np
 import torch
+from torchvision.transforms import transforms
 
 from .argoversedataset import ArgoverseDataset
 
@@ -27,7 +28,10 @@ class ContrastiveLearningTracking(ArgoverseDataset):
 
     def __init__(self, root: str,
                  aug_per_track: int = 5,
-                 img_dist_transforms: List[Callable] = None,
+                 img_dist_transforms: List[Callable] = transforms.Compose([
+                     transforms.RandomHorizontalFlip(p=0.5),
+                     transforms.RandomApply([transforms.ColorJitter(0.8, 0.8, 0.8, 0.2)], p=0.8),
+                     transforms.RandomGrayscale(p=0.2)]),
                  log_id: str = "",
                  max_tracklets: int = 10,
                  occlusion_thresh: float = 80,
@@ -83,6 +87,9 @@ class ContrastiveLearningTracking(ArgoverseDataset):
 
         for id in rand_track_ids:
             df = self.tracking_queue[track_id][id]
+            imgs_ = df.img_data
+            if self.img_dist_transforms:
+                imgs_ = [self.img_dist_transforms(img) for img in imgs_]
             imgs_ = torch.cat(tuple(df.img_data), dim=0).unsqueeze(dim=0)
             pcd = df.get_lidar()
             idx = np.random.choice(len(pcd), self.lidar_points_thresh, replace=False)
@@ -108,7 +115,7 @@ class ContrastiveLearningTracking(ArgoverseDataset):
 
         self.valid_track_ids = valid_track_ids
 
-    def explain(self) -> None:
+    def describe(self) -> None:
         total_dfs = 0
         for key, item in self.tracking_queue.items():
             print(f'Tracking id : {key} \t Tracklet count : {len(item)}')

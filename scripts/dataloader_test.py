@@ -126,6 +126,7 @@ if __name__ == "__main__":
 
     # Preload n_frames
     dataset.dataset_init(log_id, n_frames)
+    dataset.describe()
 
     # Training dataloader
     train_dl = DataLoader(dataset, batch_size=batch_size, shuffle=True)
