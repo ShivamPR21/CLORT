@@ -60,6 +60,7 @@ class VisualEncoder(nn.Module):
                                                   expansion_ratio=2,
                                                   kernel_size=3,
                                                   stride=1,
+                                                  norm_layer=nn.BatchNorm2d,
                                                   activation_layer=nn.SELU)
 
         # Layer 7 : BottleNeckResidual2d
@@ -96,6 +97,7 @@ class VisualEncoder(nn.Module):
                                                   expansion_ratio=2,
                                                   kernel_size=3,
                                                   stride=1,
+                                                  norm_layer=nn.BatchNorm2d,
                                                   activation_layer=nn.SELU)
 
         # Layer 12 : BottleNeckResidual2d
@@ -122,6 +124,7 @@ class VisualEncoder(nn.Module):
                                                            expansion_ratio=2,
                                                            kernel_size=3,
                                                            stride=2,
+                                                           norm_layer=nn.BatchNorm2d,
                                                            activation_layer=nn.SELU)
 
         # Layer 16 : InvertedResidual2d
@@ -129,7 +132,7 @@ class VisualEncoder(nn.Module):
                                                            expansion_ratio=2,
                                                            kernel_size=3,
                                                            stride=1,
-                                                           activation_layer=nn.SELU)
+                                                           activation_layer=None)
 
         # Layer 17 : MaxPool2d
         self.max_pool_2d = nn.AdaptiveAvgPool2d((1, 1))

@@ -107,3 +107,14 @@ class ContrastiveLearningTracking(ArgoverseDataset):
                 valid_track_ids += [key]
 
         self.valid_track_ids = valid_track_ids
+
+    def explain(self) -> None:
+        total_dfs = 0
+        for key, item in self.tracking_queue.items():
+            print(f'Tracking id : {key} \t Tracklet count : {len(item)}')
+            total_dfs += len(item)
+
+        print('\n\n-------------------------------------------------------------')
+        print('-------------------------------------------------------------\n\n')
+
+        print(f'Total dataframes : {total_dfs}')

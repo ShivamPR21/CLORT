@@ -94,7 +94,7 @@ if __name__ == "__main__":
                                           img_tr_ww = (0.9, 0.9),
                                           image_size_threshold=100,
                                           img_reshape = (256, 256),
-                                          ids_repeat=256)
+                                          ids_repeat=batch_size//10)
 
     # get device
     device = torch.device('cuda' if torch.cuda.is_available() and args.cuda else 'cpu')
@@ -102,7 +102,7 @@ if __name__ == "__main__":
     # Create models
     vis_model = VisualEncoder()
     pcl_model = PointCloudEncoder(10)
-    feature_mixer = FeatureMixer(vis_size = 512, pcl_size = 60)
+    feature_mixer = FeatureMixer(vis_size=512, pcl_size=60, embed_dim=128)
 
     # Move models to device
     vis_model.to(device)
@@ -160,12 +160,9 @@ if __name__ == "__main__":
                     pcls_enc = pcl_model(pcls)
                     final_enc = feature_mixer(vis_enc, pcls_enc)
 
-                    print(vis_enc, pcls_enc, final_enc)
-
                     vis_loss = criterion(vis_enc, track_ids)
                     pcl_loss = criterion(pcls_enc, track_ids)
                     enc_loss = criterion(final_enc, track_ids)
-                    print(enc_loss)
 
                     loss = w_vis * vis_loss + w_pcl * pcl_loss + w_enc * enc_loss
 

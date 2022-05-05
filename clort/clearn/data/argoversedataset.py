@@ -79,6 +79,8 @@ class ArgoverseDataset(Dataset):
         self.dataset = self.tracking_loader.get(self.log_id)
         self.n_frames = self.dataset.num_lidar_frame
 
+        self.tracking_queue.clear()
+
     def pre_load_tracking_frames(self, frames_upto:int):
         n_frames = self.n_frames
         if frames_upto is not None:

@@ -3,7 +3,7 @@
 
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=3
-#SBATCH --cpus-per-task=8
+#SBATCH --cpus-per-task=16
 #SBATCH --mem=128gb
 
 #SBATCH --error=job.clearn_dl_test_v1.err
@@ -41,6 +41,6 @@ out_dir=$HOME/research/clort_results
 mkdir -p $out_dir && cd $out_dir
 
 #python $HOME/collect_env.py
-python $script_path/dataloader_test.py $data_dir --batch_size 128 --n_epochs 10 --n_itr_logs 10 --log_id 0 --n_frames -1 --n_augs 5 \
---vis_loss_w 0.7 --pcl_loss_w 0.7 --enc_loss_w 1.0 --vis_lr 0.0007 --pcl_lr 0.0007 --enc_lr 0.0003 \
---itr_log_ln 10 --epoch_log_ln 1 --preload_model_path ''
+python -m cProfile -o $out_dir/dataloader_test.stats $script_path/dataloader_test.py $data_dir --batch_size 128 \
+--n_epochs 10 --n_itr_logs 10 --log_id 0 --n_frames -1 --n_augs 5 --vis_loss_w 0.7 --pcl_loss_w 0.7 --enc_loss_w 1.0 \
+--vis_lr 0.0007 --pcl_lr 0.0007 --enc_lr 0.0003 --itr_log_ln 10 --epoch_log_ln 1 --preload_model_path ''

@@ -2,7 +2,6 @@ import argparse
 import os
 
 import numpy as np
-import pandas as pd
 import torch
 import torch.optim as optim
 from clort.clearn.data import ContrastiveLearningTracking
@@ -94,7 +93,7 @@ if __name__ == "__main__":
                                           img_tr_ww = (0.9, 0.9),
                                           image_size_threshold=100,
                                           img_reshape = (256, 256),
-                                          ids_repeat=256)
+                                          ids_repeat=batch_size//10)
 
     # get device
     device = torch.device('cuda' if torch.cuda.is_available() and args.cuda else 'cpu')
@@ -102,7 +101,7 @@ if __name__ == "__main__":
     # Create models
     vis_model = VisualEncoder()
     pcl_model = PointCloudEncoder(10)
-    feature_mixer = FeatureMixer(vis_size = 512, pcl_size = 60)
+    feature_mixer = FeatureMixer(vis_size=512, pcl_size=60, embed_dim=128)
 
     # Move models to device
     vis_model.to(device)
