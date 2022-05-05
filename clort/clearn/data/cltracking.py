@@ -90,7 +90,7 @@ class ContrastiveLearningTracking(ArgoverseDataset):
             imgs_ = df.img_data
             if self.img_dist_transforms:
                 imgs_ = [self.img_dist_transforms(img) for img in imgs_]
-            imgs_ = torch.cat(tuple(df.img_data), dim=0).unsqueeze(dim=0)
+            imgs_ = torch.cat(tuple(imgs_), dim=0).unsqueeze(dim=0)
             pcd = df.get_lidar()
             idx = np.random.choice(len(pcd), self.lidar_points_thresh, replace=False)
             pcd = torch.as_tensor(pcd[idx], dtype=torch.float32).unsqueeze(dim=0)

@@ -3,7 +3,7 @@
 
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=3
-#SBATCH --cpus-per-task=16
+#SBATCH --cpus-per-task=15
 #SBATCH --mem=128gb
 
 #SBATCH --error=job.clearn_dl_test_v1.err
