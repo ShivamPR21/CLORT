@@ -12,14 +12,14 @@ def read(fname):
 
 setup(
     name = "clort",
-    version = "0.0.1",
+    version = "0.1.0",
     author = "Shivam Pandey",
     author_email = "pandeyshivam2017robotics@gmail.com",
     description = ("Python implementation of Contrastive Learning for 3D Tracking feature extraction."),
     license = "AGPLv3",
     keywords = "DeepLearning Pytorch Modules",
     url = "https://github.com/ShivamPR21/CLORT.git",
-    packages=['clort', 'clort.clearn'],
+    packages=['clort'],
     long_description=read('README.md'),
     classifiers=[
         "Development Status :: Alpha",
