@@ -15,7 +15,8 @@ class ArgoCL(Dataset):
                  # trunk-ignore(ruff/B006)
                  splits: List[str] = ['train1', 'train2', 'train3', 'train4'],
                  image : bool = True, pcl : bool = True, bbox : bool = True,
-                 in_global_frame : bool = True) -> None:
+                 in_global_frame : bool = True,
+                 distance_threshold: Tuple[float, float] = (0, 50)) -> None:
         super().__init__()
 
         assert(temporal_horizon > temporal_overlap and temporal_horizon != temporal_overlap)
@@ -24,12 +25,16 @@ class ArgoCL(Dataset):
         self.th = temporal_horizon # Temporal Horizon
         self.to = temporal_overlap # Temporal Overlap
         self.im, self.pc, self.bx, self.glc = image, pcl, bbox, in_global_frame
+        self.dt = distance_threshold
 
         # Get all log files
-        self.log_files: List[h5py.File] = []
+        self.log_files: List[Union[h5py.File, h5py.Group]] = []
 
         for split in splits:
-            self.log_files += [h5py.File(f'{self.root}/{split}/{log}', mode='r') for log in os.listdir(f'{self.root}/{split}')]
+            self.log_files += [h5py.File(f'{self.root}/{split}/{log}', mode='r', track_order=True) for log in os.listdir(f'{self.root}/{split}')]
+
+        for i, log_file in enumerate(self.log_files):
+            self.log_files[i] = log_file[list(log_file.keys())[0]] # type: ignore
 
         # All tracks
         self.tracks : Dict[str, Dict[str, int]] = {}
@@ -45,20 +50,22 @@ class ArgoCL(Dataset):
 
         # All frames and corresponding logs
         self.frames : Dict[str, List[str]] = {}
+        self.sorted_logs = []
         for log in self.log_files:
-            self.frames.update({log.name, list(log.keys())}) # type: ignore
+            self.frames.update({log.name : list(log.keys())}) # type: ignore
+            self.sorted_logs.append(log.name)
 
-        self.n = [len(frames)//(self.th - self.to) for _, frames in self.frames.items()]
+        self.n = [len(self.frames[log])//(self.th - self.to) for log in self.sorted_logs]
         self.N = np.sum(self.n)
 
     @staticmethod
-    def list_all_tracks_in_log(log: h5py.File) -> List[str]:
+    def list_all_tracks_in_log(log: h5py.Group) -> List[str]:
 
         tracks : List[str] = []
 
-        log_id = list(log.keys())[0]
+        log_id = log.name
 
-        for frame in list(log[log_id].keys()): # type: ignore
+        for frame in log[log_id].keys(): # type: ignore
             for in_frame_key in log[f'{log_id}/{frame}'].keys(): # type: ignore
                 if not in_frame_key.startswith('det'):
                     continue
@@ -75,7 +82,7 @@ class ArgoCL(Dataset):
 
         for i in range(len(self.n)):
             items += self.n[i]
-            if index < items:
+            if index <= items:
                 return i, index-items+self.n[i]
 
         raise KeyError(f'Index ({index}) out of bound')
@@ -94,6 +101,11 @@ class ArgoCL(Dataset):
             if not det.startswith('det'):
                 continue
 
+            bbox = np.asanyarray(frame_log[f'{det}/bbox'], dtype=np.float32)
+            center_distance = np.linalg.norm(np.mean(bbox, axis=0))
+            if not (center_distance > self.dt[0] and center_distance < self.dt[1]):
+                continue
+
             det_data : Dict[str, Union[np.ndarray, int]] = {
                 'pcl' : np.empty((0, 3)),
                 'imgs' : np.empty((0, 250, 250)),
@@ -101,6 +113,7 @@ class ArgoCL(Dataset):
                 'track_idx' : -1,
                 'cls_idx' : -1,
             }
+
             if pc:
                 point_cloud = np.asanyarray(frame_log[f'{det}/pcl'], dtype=np.float32)
                 if glc:
@@ -108,7 +121,7 @@ class ArgoCL(Dataset):
                 det_data.update({'pcl' : point_cloud})
 
             if bx:
-                bbox = np.asanyarray(frame_log[f'{det}/bbox'], dtype=np.float32)
+                # bbox = np.asanyarray(frame_log[f'{det}/bbox'], dtype=np.float32)
                 if glc:
                     bbox = bbox @ R + t
                 det_data.update({'bbox' : bbox})
@@ -134,8 +147,6 @@ class ArgoCL(Dataset):
             except ValueError:
                 self.obj_cls.append(obj_cls)
                 cls_idx = len(self.obj_cls)-1
-            else:
-                raise ValueError("Object class assignment problem, check ArgoCL Dataset class.")
 
             det_data.update(
                 {'cls_idx' : cls_idx}
@@ -161,7 +172,8 @@ class ArgoCL(Dataset):
         track_idxs : List[int] = [] # Track id list as integers one per detection
         cls_idxs : List[int] = [] # Class id list as integer, one per detection
 
-        for frame in self.frames[log_id][index:min(index+self.th, self.n[i])]:
+        n = len(self.frames[self.sorted_logs[i]])
+        for frame in self.frames[log_id][index:min(index+self.th, n)]:
             frame_data = self.extract_frame_info(
                 log_id,
                 self.log_files[i][frame], # type: ignore
