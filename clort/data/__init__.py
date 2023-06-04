@@ -1,3 +1,3 @@
-from .ArgoCL import ArgoCL
+from .ArgoCL import ArgoCL, ArgoCl_collate_fxn
 
-__all__ = ('ArgoCL',)
+__all__ = ('ArgoCL', 'ArgoCl_collate_fxn',)

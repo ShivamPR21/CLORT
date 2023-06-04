@@ -16,7 +16,10 @@ class ArgoCL(Dataset):
                  splits: List[str] = ['train1', 'train2', 'train3', 'train4'],
                  image : bool = True, pcl : bool = True, bbox : bool = True,
                  in_global_frame : bool = True,
-                 distance_threshold: Tuple[float, float] = (0, 50)) -> None:
+                 distance_threshold: Tuple[float, float] = (0, 50),
+                 # trunk-ignore(ruff/B006)
+                 point_batch_quantization : List[int] = [0, 150, 500, 1000, 1500, 2000],
+                 point_cloud_size: int = 2048) -> None:
         super().__init__()
 
         assert(temporal_horizon > temporal_overlap and temporal_horizon != temporal_overlap)
@@ -26,6 +29,8 @@ class ArgoCL(Dataset):
         self.to = temporal_overlap # Temporal Overlap
         self.im, self.pc, self.bx, self.glc = image, pcl, bbox, in_global_frame
         self.dt = distance_threshold
+        self.pbq = point_batch_quantization
+        self.pcs = point_cloud_size
 
         # Get all log files
         self.log_files: List[Union[h5py.File, h5py.Group]] = []
@@ -57,6 +62,11 @@ class ArgoCL(Dataset):
 
         self.n = [len(self.frames[log])//(self.th - self.to) for log in self.sorted_logs]
         self.N = np.sum(self.n)
+
+    def __del__(self):
+        for f in self.log_files:
+            f.close()
+        print("All files are closed and destructor called.")
 
     @staticmethod
     def list_all_tracks_in_log(log: h5py.Group) -> List[str]:
@@ -201,8 +211,8 @@ class ArgoCL(Dataset):
         if self.im:
             imgs = torch.from_numpy(np.concatenate(imgs, axis=0).astype(np.float32)/255.) # Concatenate images on channel dimension # [_, 250, 250]
             imgs = torch.cat(
-                imgs.unsqueeze(dim=1).split(split_size=3, dim=0)   # ([3, 1, 250, 250]...)
-                , dim=1)                                           # [3, _//3, 250, 250] # dimension 1 is number of views which
+                imgs.unsqueeze(dim=0).split(split_size=3, dim=1)   # ([1, 3, 250, 250]...)
+                , dim=0)                                           # [_//3, 3, 250, 250] # dimension 1 is number of views which
                                                                                                             # can be extracted with $imgs_sz$ split
 
         if self.bx:
@@ -210,7 +220,32 @@ class ArgoCL(Dataset):
                 torch.from_numpy(np.concatenate(bboxs, axis=0)).unsqueeze(dim=0).split(8, dim=1),
                 dim=0) # [num_dets, 8, 3] # Concatenation on points dimension
 
+        pcls_sz = np.array(pcls_sz, dtype=np.uint16)
+        imgs_sz = np.array(imgs_sz, dtype=np.uint8)
+        track_idxs = np.array(track_idxs, dtype=np.uint16)
+        cls_idxs = np.array(cls_idxs, dtype=np.uint8)
+
         return pcls, pcls_sz, imgs, imgs_sz, bboxs, track_idxs, cls_idxs
 
     def __len__(self) -> int:
         return self.N
+
+def ArgoCl_collate_fxn(batch:torch.tensor):
+
+    pcls, pcls_sz, imgs, imgs_sz, bboxs, track_idxs, cls_idxs = [], [], [], [], [], [], []
+
+    for sample in batch:
+        pcls.append(sample[0])
+        pcls_sz.append(sample[1])
+        imgs.append(sample[2])
+        imgs_sz.append(sample[3])
+        bboxs.append(sample[4])
+        track_idxs.append(sample[5])
+        cls_idxs.append(sample[6])
+
+    pcls, pcls_sz, imgs, imgs_sz, bboxs, track_idxs, cls_idxs = \
+        torch.cat(pcls, dim=0), np.concatenate(pcls_sz, axis=0), torch.cat(imgs, dim=0), \
+            np.concatenate(imgs_sz, axis=0), torch.cat(bboxs, dim=0), np.concatenate(track_idxs, axis=0), \
+                np.concatenate(cls_idxs, axis=0)
+
+    return pcls, pcls_sz, imgs, imgs_sz, bboxs, track_idxs, cls_idxs
