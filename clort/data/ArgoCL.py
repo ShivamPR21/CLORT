@@ -19,7 +19,7 @@ class ArgoCL(Dataset):
                  distance_threshold: Tuple[float, float] = (0, 50),
                  # trunk-ignore(ruff/B006)
                  point_batch_quantization : List[int] = [0, 150, 500, 1000, 1500, 2000],
-                 point_cloud_size: int = 2048) -> None:
+                 point_cloud_size: List[int] | int | None = None) -> None:
         super().__init__()
 
         assert(temporal_horizon > temporal_overlap and temporal_horizon != temporal_overlap)
@@ -63,10 +63,10 @@ class ArgoCL(Dataset):
         self.n = [len(self.frames[log])//(self.th - self.to) for log in self.sorted_logs]
         self.N = np.sum(self.n)
 
-    def __del__(self):
-        for f in self.log_files:
-            f.close()
-        print("All files are closed and destructor called.")
+    # def __del__(self):
+    #     for f in self.log_files:
+    #         f.parent.close()
+    #     print("All files are closed and destructor called.")
 
     @staticmethod
     def list_all_tracks_in_log(log: h5py.Group) -> List[str]:
@@ -97,6 +97,28 @@ class ArgoCL(Dataset):
 
         raise KeyError(f'Index ({index}) out of bound')
 
+    def sample_point_cloud(self, pc: np.ndarray) -> np.ndarray:
+
+        if self.pcs is None:
+            return pc
+
+        sz = len(pc)
+        if isinstance(self.pcs, int):
+            sz = self.pcs
+        else:
+            curr_sz = sz
+            for i in sorted(self.pcs):
+                if i < sz:
+                    curr_sz = i
+                else:
+                    break
+
+            sz = curr_sz
+
+        idx = np.random.randint(0, len(pc), size=sz, dtype=int)
+
+        return pc[idx, :]
+
     def extract_frame_info(self, log_id: str, frame_log: h5py.Group,
                            im : bool = True, pc : bool = True,
                            bx : bool = True, glc : bool = True) -> List[Dict[str, Union[np.ndarray, int]]]:
@@ -125,7 +147,7 @@ class ArgoCL(Dataset):
             }
 
             if pc:
-                point_cloud = np.asanyarray(frame_log[f'{det}/pcl'], dtype=np.float32)
+                point_cloud = self.sample_point_cloud(np.asanyarray(frame_log[f'{det}/pcl'], dtype=np.float32))
                 if glc:
                     point_cloud = point_cloud @ R + t
                 det_data.update({'pcl' : point_cloud})
@@ -182,12 +204,16 @@ class ArgoCL(Dataset):
         track_idxs : List[int] = [] # Track id list as integers one per detection
         cls_idxs : List[int] = [] # Class id list as integer, one per detection
 
+        frame_sz : List[int] = []
+
         n = len(self.frames[self.sorted_logs[i]])
         for frame in self.frames[log_id][index:min(index+self.th, n)]:
             frame_data = self.extract_frame_info(
                 log_id,
                 self.log_files[i][frame], # type: ignore
                 self.im, self.pc, self.bx, self.glc)
+
+            frame_sz.append(len(frame_data))
 
             for det in frame_data:
                 if self.pc:
@@ -224,15 +250,17 @@ class ArgoCL(Dataset):
         imgs_sz = np.array(imgs_sz, dtype=np.uint8)
         track_idxs = np.array(track_idxs, dtype=np.uint16)
         cls_idxs = np.array(cls_idxs, dtype=np.uint8)
+        frame_sz = np.array(frame_sz, dtype=np.uint16)
 
-        return pcls, pcls_sz, imgs, imgs_sz, bboxs, track_idxs, cls_idxs
+        return pcls, pcls_sz, imgs, imgs_sz, bboxs, track_idxs, cls_idxs, frame_sz
 
     def __len__(self) -> int:
         return self.N
 
-def ArgoCl_collate_fxn(batch:torch.tensor):
+def ArgoCl_collate_fxn(batch:Any):
 
-    pcls, pcls_sz, imgs, imgs_sz, bboxs, track_idxs, cls_idxs = [], [], [], [], [], [], []
+    pcls, pcls_sz, imgs, imgs_sz, bboxs, track_idxs, cls_idxs, frame_sz, sample_sz = \
+        [], [], [], [], [], [], [], [], []
 
     for sample in batch:
         pcls.append(sample[0])
@@ -242,10 +270,12 @@ def ArgoCl_collate_fxn(batch:torch.tensor):
         bboxs.append(sample[4])
         track_idxs.append(sample[5])
         cls_idxs.append(sample[6])
+        frame_sz.append(sample[7])
+        sample_sz.append(len(sample[7]))
 
-    pcls, pcls_sz, imgs, imgs_sz, bboxs, track_idxs, cls_idxs = \
+    pcls, pcls_sz, imgs, imgs_sz, bboxs, track_idxs, cls_idxs, frame_sz, sample_sz = \
         torch.cat(pcls, dim=0), np.concatenate(pcls_sz, axis=0), torch.cat(imgs, dim=0), \
             np.concatenate(imgs_sz, axis=0), torch.cat(bboxs, dim=0), np.concatenate(track_idxs, axis=0), \
-                np.concatenate(cls_idxs, axis=0)
+                np.concatenate(cls_idxs, axis=0), np.concatenate(frame_sz, axis=0), np.array(sample_sz, dtype=int)
 
-    return pcls, pcls_sz, imgs, imgs_sz, bboxs, track_idxs, cls_idxs
+    return pcls, pcls_sz, imgs, imgs_sz, bboxs, track_idxs, cls_idxs, frame_sz, sample_sz

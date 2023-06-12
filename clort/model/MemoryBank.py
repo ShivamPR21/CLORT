@@ -7,7 +7,7 @@ import torch
 class MemoryBank:
 
     def __init__(self, n_tracks: int, N: int, Q: int,
-                 alpha: Union[np.ndarray, torch.Tensor], eps: float = 1e-8) -> None:
+                 alpha: Union[np.ndarray, torch.Tensor], eps: float = 1e-9) -> None:
         self.eps = eps
         self.alpha = alpha.reshape((Q, 1))
         self.memory = torch.zeros((n_tracks, N, Q), dtype=torch.float32)
