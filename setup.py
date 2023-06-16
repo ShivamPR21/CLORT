@@ -19,7 +19,9 @@ setup(
     license = "AGPLv3",
     keywords = "DeepLearning Pytorch Modules",
     url = "https://github.com/ShivamPR21/CLORT.git",
-    packages=['clort'],
+    packages=['clort',
+              'clort.data',
+              'clort.model'],
     long_description=read('README.md'),
     classifiers=[
         "Development Status :: Alpha",
