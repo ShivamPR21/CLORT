@@ -132,3 +132,5 @@ dmypy.json
 *.png
 
 */scrap.ipynb
+
+*/wandb/
