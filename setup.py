@@ -21,7 +21,8 @@ setup(
     url = "https://github.com/ShivamPR21/CLORT.git",
     packages=['clort',
               'clort.data',
-              'clort.model'],
+              'clort.model',
+              'clort.model.encoders'],
     long_description=read('README.md'),
     classifiers=[
         "Development Status :: Alpha",
