@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Tuple, Union
 import h5py
 import numpy as np
 import torch
+import torch.nn.functional as F
 from torch.utils.data import Dataset
 
 
@@ -17,9 +18,9 @@ class ArgoCL(Dataset):
                  image : bool = True, pcl : bool = True, bbox : bool = True,
                  in_global_frame : bool = True,
                  distance_threshold: Tuple[float, float] = (0, 50),
-                 # trunk-ignore(ruff/B006)
-                 point_batch_quantization : List[int] = [0, 150, 500, 1000, 1500, 2000],
-                 point_cloud_size: List[int] | int | None = None) -> None:
+                 img_size : Tuple[int, int] = (224, 224),
+                 point_cloud_size: List[int] | int | None = None,
+                 pivot_to_first_frame: bool = False) -> None:
         super().__init__()
 
         assert(temporal_horizon > temporal_overlap and temporal_horizon != temporal_overlap)
@@ -29,8 +30,10 @@ class ArgoCL(Dataset):
         self.to = temporal_overlap # Temporal Overlap
         self.im, self.pc, self.bx, self.glc = image, pcl, bbox, in_global_frame
         self.dt = distance_threshold
-        self.pbq = point_batch_quantization
+        # self.pbq = point_batch_quantization
+        self.img_size = img_size
         self.pcs = point_cloud_size
+        self.pvff = pivot_to_first_frame
 
         # Get all log files
         self.log_files: List[Union[h5py.File, h5py.Group]] = []
@@ -207,6 +210,9 @@ class ArgoCL(Dataset):
         frame_sz : List[int] = []
 
         n = len(self.frames[self.sorted_logs[i]])
+
+        pivot: np.ndarray | None = None
+
         for frame in self.frames[log_id][index:min(index+self.th, n)]:
             frame_data = self.extract_frame_info(
                 log_id,
@@ -220,6 +226,7 @@ class ArgoCL(Dataset):
                     pcls.append(det['pcl']) # type: ignore
                     pcls_sz.append(det['pcl'].shape[0]) # type: ignore
 
+
                 if self.im:
                     imgs.append(det['imgs'])  # type: ignore
                     imgs_sz.append(det['imgs'].shape[0]//3) # type: ignore
@@ -230,21 +237,27 @@ class ArgoCL(Dataset):
                 track_idxs.append(det['track_idx']) # type: ignore
                 cls_idxs.append(det['cls_idx']) # type: ignore
 
+            if self.pvff and self.pc and pivot is None:
+                    pivot = np.concatenate(pcls, axis=0).mean(axis=0, keepdims=True)
+
         # Aggregate informations from all frames in temporal horizon
         if self.pc:
-            pcls = torch.from_numpy(np.concatenate(pcls, axis=0)) # Concatenate on points dimension
+            pcls = torch.from_numpy(np.concatenate(pcls, axis=0) - (pivot if pivot is not None else 0)) # Concatenate on points dimension
 
         if self.im:
             imgs = torch.from_numpy(np.concatenate(imgs, axis=0).astype(np.float32)/255.) # Concatenate images on channel dimension # [_, 250, 250]
-            imgs = torch.cat(
-                imgs.unsqueeze(dim=0).split(split_size=3, dim=1)   # ([1, 3, 250, 250]...)
-                , dim=0)                                           # [_//3, 3, 250, 250] # dimension 1 is number of views which
-                                                                                                            # can be extracted with $imgs_sz$ split
+            imgs = imgs.view(-1, 3, imgs.shape[-2], imgs.shape[-1])
+            # torch.cat(
+            #     imgs.unsqueeze(dim=0).split(split_size=3, dim=1)   # ([1, 3, 250, 250]...)
+            #     , dim=0)                                           # [_//3, 3, 250, 250] # dimension 1 is number of views which
+            #                                                                                                 # can be extracted with $imgs_sz$ split
+            imgs = F.interpolate(imgs, self.img_size, mode='bilinear')
 
         if self.bx:
-            bboxs = torch.cat(
-                torch.from_numpy(np.concatenate(bboxs, axis=0)).unsqueeze(dim=0).split(8, dim=1),
-                dim=0) # [num_dets, 8, 3] # Concatenation on points dimension
+            # bboxs = torch.cat(
+            #     torch.from_numpy(np.concatenate(bboxs, axis=0)).unsqueeze(dim=0).split(8, dim=1),
+            #     dim=0) # [num_dets, 8, 3] # Concatenation on points dimension
+            bboxs = torch.from_numpy(np.concatenate(bboxs, axis=0) - (pivot if pivot is not None else 0)).view(-1, 8, 3)
 
         pcls_sz = np.array(pcls_sz, dtype=np.uint16)
         imgs_sz = np.array(imgs_sz, dtype=np.uint8)

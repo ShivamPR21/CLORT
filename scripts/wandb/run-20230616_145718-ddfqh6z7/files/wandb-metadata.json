@@ -1,0 +1,124 @@
+{
+    "os": "Linux-5.19.0-43-generic-x86_64-with-glibc2.35",
+    "python": "3.10.6",
+    "heartbeatAt": "2023-06-16T09:27:19.296068",
+    "startedAt": "2023-06-16T09:27:18.270356",
+    "docker": null,
+    "cuda": null,
+    "args": null,
+    "state": "running",
+    "program": "<python with no main file>",
+    "git": {
+        "remote": "https://github.com/ShivamPR21/CLORT.git",
+        "commit": "d361dc4e1ce552a5507a327177a494e5b637ac67"
+    },
+    "email": "pandeyshivam2017robotics@gmail.com",
+    "root": "/home/shivampr21/Research/MOT-Research/CLORT",
+    "host": "shivampr21-Inspiron-16-7610",
+    "username": "shivampr21",
+    "executable": "/home/shivampr21/.venv/clort/bin/python",
+    "cpu_count": 8,
+    "cpu_count_logical": 16,
+    "cpu_freq": {
+        "current": 2.9488125,
+        "min": 800.0,
+        "max": 4600.0
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 3.808,
+            "min": 800.0,
+            "max": 4600.0
+        },
+        {
+            "current": 4.281,
+            "min": 800.0,
+            "max": 4600.0
+        },
+        {
+            "current": 3.782,
+            "min": 800.0,
+            "max": 4600.0
+        },
+        {
+            "current": 2.793,
+            "min": 800.0,
+            "max": 4600.0
+        },
+        {
+            "current": 2.3,
+            "min": 800.0,
+            "max": 4600.0
+        },
+        {
+            "current": 2.3,
+            "min": 800.0,
+            "max": 4600.0
+        },
+        {
+            "current": 4.179,
+            "min": 800.0,
+            "max": 4600.0
+        },
+        {
+            "current": 3.931,
+            "min": 800.0,
+            "max": 4600.0
+        },
+        {
+            "current": 2.3,
+            "min": 800.0,
+            "max": 4600.0
+        },
+        {
+            "current": 4.243,
+            "min": 800.0,
+            "max": 4600.0
+        },
+        {
+            "current": 3.931,
+            "min": 800.0,
+            "max": 4600.0
+        },
+        {
+            "current": 3.755,
+            "min": 800.0,
+            "max": 4600.0
+        },
+        {
+            "current": 3.942,
+            "min": 800.0,
+            "max": 4600.0
+        },
+        {
+            "current": 4.217,
+            "min": 800.0,
+            "max": 4600.0
+        },
+        {
+            "current": 3.184,
+            "min": 800.0,
+            "max": 4600.0
+        },
+        {
+            "current": 4.119,
+            "min": 800.0,
+            "max": 4600.0
+        }
+    ],
+    "disk": {
+        "total": 585.7581939697266,
+        "used": 501.5958938598633
+    },
+    "gpu": "NVIDIA GeForce RTX 3050 Laptop GPU",
+    "gpu_count": 1,
+    "gpu_devices": [
+        {
+            "name": "NVIDIA GeForce RTX 3050 Laptop GPU",
+            "memory_total": 4294967296
+        }
+    ],
+    "memory": {
+        "total": 15.368709564208984
+    }
+}

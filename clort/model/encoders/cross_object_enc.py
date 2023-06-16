@@ -30,7 +30,7 @@ class CrossObjectEncoder(nn.Module):
                                dynamic_batching=True, enable_offloading=False)
 
         self.gat3 = SelfGraphAttentionLinear(enc_layers[1], None, residual=True, dynamic_batching=True)
-        self.conv2 = GraphConv(enc_layers[1], enc_layers[2], bias=True, k=10,
+        self.conv3 = GraphConv(enc_layers[1], enc_layers[2], bias=True, k=10,
                                reduction='max', features='local+global',
                                norm_layer=nn.BatchNorm1d, activation_layer=nn.Tanh,
                                dynamic_batching=True, enable_offloading=False)
@@ -47,6 +47,6 @@ class CrossObjectEncoder(nn.Module):
 
         obj_encs = self.projection_head(obj_encs)
 
-        obj_encs /= (obj_encs.norm(dim=1, keepdim=True) + self.eps)
+        obj_encs = obj_encs/(obj_encs.norm(dim=1, keepdim=True) + self.eps)
 
         return obj_encs
