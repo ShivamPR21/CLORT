@@ -1,5 +1,5 @@
 import os
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Tuple
 
 import h5py
 import numpy as np
@@ -36,7 +36,7 @@ class ArgoCL(Dataset):
         self.pvff = pivot_to_first_frame
 
         # Get all log files
-        self.log_files: List[Union[h5py.File, h5py.Group]] = []
+        self.log_files: List[h5py.File | h5py.Group] = []
 
         for split in splits:
             self.log_files += [h5py.File(f'{self.root}/{split}/{log}', mode='r', track_order=True) for log in os.listdir(f'{self.root}/{split}')]
@@ -96,7 +96,7 @@ class ArgoCL(Dataset):
         for i in range(len(self.n)):
             items += self.n[i]
             if index <= items:
-                return i, index-items+self.n[i]
+                return i, index-items+self.n[i]-1
 
         raise KeyError(f'Index ({index}) out of bound')
 
@@ -124,8 +124,8 @@ class ArgoCL(Dataset):
 
     def extract_frame_info(self, log_id: str, frame_log: h5py.Group,
                            im : bool = True, pc : bool = True,
-                           bx : bool = True, glc : bool = True) -> List[Dict[str, Union[np.ndarray, int]]]:
-        frame_data : List[Dict[str, Union[np.ndarray, int]]] = []
+                           bx : bool = True, glc : bool = True) -> List[Dict[str, np.ndarray | int]]:
+        frame_data : List[Dict[str, np.ndarray | int]] = []
 
         R, t = np.eye(3), np.zeros((3, ))
         if glc:
@@ -141,7 +141,7 @@ class ArgoCL(Dataset):
             if not (center_distance > self.dt[0] and center_distance < self.dt[1]):
                 continue
 
-            det_data : Dict[str, Union[np.ndarray, int]] = {
+            det_data : Dict[str, np.ndarray | int] = {
                 'pcl' : np.empty((0, 3)),
                 'imgs' : np.empty((0, 250, 250)),
                 'bbox' : np.empty((0, 3)),
@@ -196,22 +196,24 @@ class ArgoCL(Dataset):
         log_id : str = self.log_files[i].name # type: ignore
 
         # Point-Cloud Data
-        pcls : Union[torch.Tensor, np.ndarray, List[np.ndarray]] = []
-        pcls_sz : List[int] = [] # Point-Cloud sizes (for slicing)
+        pcls : torch.Tensor | np.ndarray | List[np.ndarray] = []
+        pcls_sz : List[int] | np.ndarray = [] # Point-Cloud sizes (for slicing)
 
         # Multi-View Image Data
-        imgs : Union[torch.Tensor, np.ndarray, List[np.ndarray]] = []
-        imgs_sz : List[int] = [] # MV Image sizes (for slicing)
+        imgs : torch.Tensor | np.ndarray | List[np.ndarray] = []
+        imgs_sz : List[int] | np.ndarray = [] # MV Image sizes (for slicing)
 
-        bboxs : Union[torch.Tensor, np.ndarray, List[np.ndarray]] = [] # Bounding boxes, fixed size of 8 corner bbox
-        track_idxs : List[int] = [] # Track id list as integers one per detection
-        cls_idxs : List[int] = [] # Class id list as integer, one per detection
+        bboxs : torch.Tensor | np.ndarray | List[np.ndarray] = [] # Bounding boxes, fixed size of 8 corner bbox
+        track_idxs : List[int] | np.ndarray = [] # Track id list as integers one per detection
+        cls_idxs : List[int] | np.ndarray = [] # Class id list as integer, one per detection
 
-        frame_sz : List[int] = []
+        frame_sz : List[int] | np.ndarray = []
 
         n = len(self.frames[self.sorted_logs[i]])
 
         pivot: np.ndarray | None = None
+
+        # print(f'{index, min(index+self.th, n) = }')
 
         for frame in self.frames[log_id][index:min(index+self.th, n)]:
             frame_data = self.extract_frame_info(
