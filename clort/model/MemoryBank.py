@@ -57,8 +57,9 @@ class MemoryBank:
 
 class MemoryBankInfer:
 
-    def __init__(self, n_tracks: int, N: int, Q: int, t: int = 3, device: torch.device | str = 'cpu') -> None:
-        self.n_tracks, self.N, self.Q, self.t = n_tracks, N, Q, t
+    def __init__(self, n_tracks: int, N: int, Q: int, t: int = 3,
+                 alpha_threshold: float = 0.3, beta_threshold: float = 0.2, device: torch.device | str = 'cpu') -> None:
+        self.n_tracks, self.N, self.Q, self.t, self.alpha_t, self.beta_t = n_tracks, N, Q, t, alpha_threshold, beta_threshold
 
         self.eps = 1e-9
         self.device = device
@@ -89,6 +90,7 @@ class MemoryBankInfer:
             beta_[(count == 0).flatten(), :] = 1. # Check for initialization
 
             beta = (beta*count + beta_)/(count+1.)
+            beta = torch.clip(beta, self.beta_t, 1.) # Clip to threshold
 
             self.beta[track_idxs, q:q+1] = beta
 
@@ -98,6 +100,7 @@ class MemoryBankInfer:
                 prev_mem = self.memory[track_idxs, q-1, :]
 
             alpha = (memory*prev_mem).sum(dim=1, keepdim=True) # [n_tracks, 1]
+            alpha = torch.clip(alpha, self.alpha_t, 1.) # Clip to threshold
 
             sf = max(q+1, self.t)
 

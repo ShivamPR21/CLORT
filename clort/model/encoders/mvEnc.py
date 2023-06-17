@@ -18,11 +18,12 @@ class MultiViewEncoder(nn.Module):
 
         self.sv_enc1 = create_model('dla34', features_only=True, pretrained=True)
         self.max_pool = nn.AdaptiveMaxPool2d(output_size=(1, 1))
-        self.sv_enc2 = LinearNormActivation(512, 256, norm_layer=nn.BatchNorm1d, activation_layer=nn.Tanh)
-        self.sv_enc3 = LinearNormActivation(256, 128, activation_layer=nn.Tanh)
+        self.sv_enc2 = LinearNormActivation(512, 256, norm_layer=nn.BatchNorm1d, activation_layer=nn.ReLU)
+        self.sv_enc3 = LinearNormActivation(256, 128, activation_layer=nn.ReLU)
 
         self.gat = SelfGraphAttentionLinear(128, None, residual=True, dynamic_batching=True)
-        self.projection_head = LinearNormActivation(128, out_dim, activation_layer=nn.Tanh)
+        self.gat_act = nn.ReLU()
+        self.projection_head = LinearNormActivation(128, out_dim, activation_layer=None)
 
     def forward(self, x : torch.Tensor, n_views: np.ndarray) -> torch.Tensor:
         # x -> [N, 3, W, H]
@@ -32,7 +33,7 @@ class MultiViewEncoder(nn.Module):
         x = self.max_pool(self.sv_enc1(x)[-1]).flatten(start_dim=1) # [N, 512]
         x = self.sv_enc3(self.sv_enc2(x)) # [N, 128]
 
-        x = self.gat(x, n_views) # [N, 128]
+        x = self.gat_act(self.gat(x, n_views)) # [N, 128]
 
         sz_arr = [_.numpy().tolist() for _ in torch.arange(0, x.shape[0], dtype=torch.int32).split(n_views.tolist(), dim=0)]
 
