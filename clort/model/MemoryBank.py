@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Tuple, Union
 
 import numpy as np
 import torch
@@ -58,7 +58,7 @@ class MemoryBank:
 class MemoryBankInfer:
 
     def __init__(self, n_tracks: int, N: int, Q: int, t: int = 3,
-                 alpha_threshold: float = 0.3, beta_threshold: float = 0.2, device: torch.device | str = 'cpu') -> None:
+                 alpha_threshold: Tuple[float, float] = (0.1, 0.9), beta_threshold: Tuple[float, float] = (0.1, 0.9), device: torch.device | str = 'cpu') -> None:
         self.n_tracks, self.N, self.Q, self.t, self.alpha_t, self.beta_t = n_tracks, N, Q, t, alpha_threshold, beta_threshold
 
         self.eps = 1e-9
@@ -87,10 +87,10 @@ class MemoryBankInfer:
             beta, memory = self.beta[track_idxs, q:q+1], self.memory[track_idxs, q, :] # [n_tracks, 1], [n_tracks, N]
 
             beta_ = (reprs * memory).sum(dim=1, keepdim=True) # [n_tracks, 1]
-            beta_[(count == 0).flatten(), :] = 1. # Check for initialization
+            beta_[(count == 0).flatten(), :] = 0.1 # Check for initialization
 
             beta = (beta*count + beta_)/(count+1.)
-            beta = torch.clip(beta, self.beta_t, 1.) # Clip to threshold
+            beta = torch.clip(beta, self.beta_t[0], self.beta_t[1]) # Clip to threshold
 
             self.beta[track_idxs, q:q+1] = beta
 
@@ -100,9 +100,9 @@ class MemoryBankInfer:
                 prev_mem = self.memory[track_idxs, q-1, :]
 
             alpha = (memory*prev_mem).sum(dim=1, keepdim=True) # [n_tracks, 1]
-            alpha = torch.clip(alpha, self.alpha_t, 1.) # Clip to threshold
+            alpha = torch.clip(alpha, self.alpha_t[0], self.alpha_t[1]) # Clip to threshold
 
-            sf = max(q+1, self.t)
+            sf = max(max(q+1, self.t), 2)
 
             memory = (1. - (alpha+beta)/sf) * memory + (alpha/sf)*prev_mem + (beta/sf)*reprs
 

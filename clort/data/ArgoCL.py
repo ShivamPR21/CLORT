@@ -13,6 +13,7 @@ class ArgoCL(Dataset):
     def __init__(self, root: str,
                  temporal_horizon: int = 8,
                  temporal_overlap: int = 4,
+                 max_objects: int | None = None,
                  # trunk-ignore(ruff/B006)
                  splits: List[str] = ['train1', 'train2', 'train3', 'train4'],
                  image : bool = True, pcl : bool = True, bbox : bool = True,
@@ -28,6 +29,7 @@ class ArgoCL(Dataset):
         self.root = root # Dataset Root
         self.th = temporal_horizon # Temporal Horizon
         self.to = temporal_overlap # Temporal Overlap
+        self.max_objects = max_objects
         self.im, self.pc, self.bx, self.glc = image, pcl, bbox, in_global_frame
         self.dt = distance_threshold
         # self.pbq = point_batch_quantization
@@ -132,7 +134,15 @@ class ArgoCL(Dataset):
             tr = np.asanyarray(frame_log['local_to_global_transform'], dtype=np.float32)
             R, t = tr[:, :3], tr[:, 3]
 
-        for det in frame_log.keys():
+        n_det = len(list(frame_log.keys()))
+        idxs_ = np.arange(n_det)
+
+        if self.max_objects is not None and n_det > self.max_objects:
+            idxs_ = np.random.randint(0, n_det, size=self.max_objects)
+
+        dets = list(frame_log.keys())
+        for det_idx in idxs_:
+            det = dets[det_idx]
             if not det.startswith('det'):
                 continue
 
