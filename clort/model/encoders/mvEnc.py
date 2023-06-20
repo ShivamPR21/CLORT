@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Callable, Tuple
 
 import numpy as np
 import torch
@@ -16,29 +16,30 @@ from moduleZoo.resblocks import (
 
 class SingleViewEncoder(nn.Module):
 
-    def __init__(self, image_shape: Tuple[int, int] = (224, 224), in_dim:int = 3, out_dim: int = 256) -> None:
+    def __init__(self, image_shape: Tuple[int, int] = (224, 224), in_dim:int = 3, out_dim: int = 256,
+                 norm_layer : Callable[..., nn.Module] | None=None) -> None:
         super().__init__()
 
         self.image_shape = image_shape
         self.in_dim, self.out_dim = in_dim, out_dim
 
         self.conv1 = ConvNormActivation2d(self.in_dim, 64, kernel_size=5, stride=2,
-                                          norm_layer=None, activation_layer=nn.SELU)
+                                          norm_layer=norm_layer, activation_layer=nn.SELU)
 
         self.conv2 = ConvNormActivation2d(64, 64, kernel_size=5, stride=2,
-                                          norm_layer=None, activation_layer=nn.SELU)
+                                          norm_layer=norm_layer, activation_layer=nn.SELU)
 
         self.res3 = ConvBottleNeckResidualBlock2d(64, 4, 64, kernel_size=3, stride=1,
-                                                  norm_layer=None, activation_layer=nn.SELU)
+                                                  norm_layer=norm_layer, activation_layer=nn.SELU)
 
         self.res4 = ConvBottleNeckResidualBlock2d(64, 4, 128, kernel_size=3, stride=2,
-                                                  norm_layer=None, activation_layer=nn.SELU)
+                                                  norm_layer=norm_layer, activation_layer=nn.SELU)
 
         self.res5 = ConvInvertedResidualBlock2d(128, 2, 256, kernel_size=3, stride=2,
-                                                norm_layer=None, activation_layer=nn.SELU)
+                                                norm_layer=norm_layer, activation_layer=nn.SELU)
 
         self.res6 = ConvInvertedResidualBlock2d(256, 2, self.out_dim, kernel_size=3, stride=2,
-                                                norm_layer=None, activation_layer=nn.SELU)
+                                                norm_layer=norm_layer, activation_layer=nn.SELU)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.conv1(x)
@@ -51,17 +52,20 @@ class SingleViewEncoder(nn.Module):
 
 class MultiViewEncoder(nn.Module):
 
-    def __init__(self, image_shape : Tuple[int, int] = (224, 224), out_dim: int = 256) -> None:
+    def __init__(self,
+                 image_shape : Tuple[int, int] = (224, 224), out_dim: int = 256,
+                 norm_2d: Callable[..., nn.Module] | None = None,
+                 norm_1d: Callable[..., nn.Module] | None = None) -> None:
         super().__init__()
 
         self.eps = 1e-9
         self.image_shape = image_shape
 
         # self.sv_enc1 = create_model('dla34', features_only=True, pretrained=True)
-        self.sv_enc1 = SingleViewEncoder(self.image_shape, 3, 512)
+        self.sv_enc1 = SingleViewEncoder(self.image_shape, 3, 512, norm_layer=norm_2d)
 
         self.max_pool = nn.AdaptiveMaxPool2d(output_size=(1, 1))
-        self.sv_enc2 = LinearNormActivation(512, 256, norm_layer=None, activation_layer=nn.SELU)
+        self.sv_enc2 = LinearNormActivation(512, 256, norm_layer=norm_1d, activation_layer=nn.SELU)
         self.sv_enc3 = LinearNormActivation(256, 128, activation_layer=nn.SELU)
 
         self.gat = SelfGraphAttentionLinear(128, None, residual=True, dynamic_batching=True)
