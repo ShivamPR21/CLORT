@@ -29,6 +29,9 @@ class ArgoCL(Dataset):
         self.root = root # Dataset Root
         self.th = temporal_horizon # Temporal Horizon
         self.to = temporal_overlap # Temporal Overlap
+
+        assert((self.th - self.to) > 0)
+
         self.max_objects = max_objects
         self.im, self.pc, self.bx, self.glc = image, pcl, bbox, in_global_frame
         self.dt = distance_threshold
@@ -98,7 +101,7 @@ class ArgoCL(Dataset):
         for i in range(len(self.n)):
             items += self.n[i]
             if index <= items:
-                return i, index-items+self.n[i]-1
+                return i, (index-items+self.n[i]-1)*(self.th-self.to)
 
         raise KeyError(f'Index ({index}) out of bound')
 
