@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 import torch.nn as nn
 
@@ -7,13 +8,24 @@ class ContrastiveLoss(nn.Module):
     def __init__(self,
                  temp: float = 0.3,
                  eps: float = 1e-9,
-                 static_contrast: bool = False) -> None:
+                 static_contrast: bool = False,
+                 use_hard_condition: bool = False,
+                 hard_condition_proportion: float = 0.5,
+                 shift_to_positive: bool = False) -> None:
         super().__init__()
 
         self.temp = temp
         self.eps = eps
+
         self.stc = static_contrast
+
+        self.hc, self.hcp = use_hard_condition, hard_condition_proportion
+
+        self.stp = shift_to_positive
+
         self.eps2 = 1e-10
+
+        self.min_loss = np.exp(2./self.temp) if not self.hc else np.exp(-1./self.temp)
 
     def forward(self, x: torch.Tensor, track_idxs: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         # x -> [n_obj', N]
@@ -27,16 +39,16 @@ class ContrastiveLoss(nn.Module):
 
         y = y[ut_ids, :, :]
 
-        # print(f'{y.shape = }')
-
         _, Q, _ = y.size()
         y = y.flatten(0, 1)
 
         y_idxs = ut_ids.repeat(Q)
 
         num, den = torch.zeros(1, device=x.device), torch.zeros(1, device=x.device)
+        n_pos, n_neg = \
+            torch.tensor([0], dtype=torch.float32, device=x.device, requires_grad=False),\
+                  torch.tensor([0], dtype=torch.float32, device=x.device, requires_grad=False)
 
-        # print(f'{y_idxs.shape = }')
         for uid in ut_ids:
             x_map = track_idxs == uid
             y_map = y_idxs == uid
@@ -46,12 +58,23 @@ class ContrastiveLoss(nn.Module):
 
             x_pos, y_pos = x_pos.unsqueeze(dim=1), y_pos.unsqueeze(dim=0)
 
-            num = num + ((x_pos * y_pos).sum(dim=-1)/self.temp).exp().sum()
+            if not self.hc:
+                num = num + ((x_pos * y_pos).sum(dim=-1)/self.temp).exp().sum()
+            else:
+                num = num + ((x_pos - y_pos).norm(dim=-1)).sum()
+
+            n_pos += x_pos.shape[0] * y_pos.shape[1]
 
             if self.stc:
-                tmp = ((x_pos * x_pos.transpose(0, 1)).sum(dim=-1)/self.temp).exp()
+                tmp = 0
+                if not self.hc:
+                    tmp = ((x_pos * x_pos.transpose(0, 1)).sum(dim=-1)/self.temp).exp()
+                else:
+                    tmp = ((x_pos - x_pos.transpose(0, 1)).norm(dim=-1))
+
                 tmp = tmp * (1.0 - torch.eye(tmp.shape[0], dtype=torch.float32, device=x.device))
                 num = num + tmp.sum()/2.
+                n_pos += (x_pos.shape[0]*(x_pos.shape[0] - 1)/2.)
 
             x_neg = x[~x_map, :]
             y_neg = y[~y_map, :]
@@ -59,10 +82,21 @@ class ContrastiveLoss(nn.Module):
             x_neg, y_neg = x_neg.unsqueeze(dim=0), y_neg.unsqueeze(dim=0)
 
             den = den + ((x_pos * y_neg).sum(dim=-1)/self.temp).exp().sum()
+            n_neg += x_neg.shape[0] * y_neg.shape[1]
 
             if self.stc:
                 den = den + ((x_pos * x_neg).sum(dim=-1)/self.temp).exp().sum()
+                n_neg += x_pos.shape[0] * x_neg.shape[0]
 
-        loss = -(num/(den+self.eps)+self.eps2).log()
+        loss: torch.Tensor | None = None
+
+        if not self.hc:
+            loss = -(num/(den+self.eps)+self.eps2).log()
+            if self.stp:
+                loss = loss + ((n_pos/(n_neg + self.eps))*self.min_loss+self.eps2).log()
+        else:
+            loss = (self.hcp*num + (den+self.eps).log())/(self.hcp+1.)
+            if self.stp:
+                loss = loss - (n_neg*self.min_loss+self.eps2).log()/(self.hcp+1.)
 
         return loss
