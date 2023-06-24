@@ -1,3 +1,5 @@
+from typing import List
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -35,11 +37,11 @@ class ContrastiveLoss(nn.Module):
         loss : torch.Tensor | None = None
 
         if not self.hc:
-            loss = -(num/(den+self.eps)+self.eps2).log()
+            loss = -(num/(den+num+self.eps)+self.eps2).log()
             if self.stp:
                 loss = loss + ((n_pos/(n_neg + self.eps))*self.min_loss+self.eps2).log()
         else:
-            loss = (self.hcp*num + (den+self.eps).log())/(self.hcp+1.)
+            loss = (self.hcp*num + (den+num+self.eps).log())/(self.hcp+1.)
             if self.stp:
                 loss = loss - (n_neg*self.min_loss+self.eps2).log()/(self.hcp+1.)
 
@@ -75,7 +77,7 @@ class ContrastiveLoss(nn.Module):
             torch.tensor([0], dtype=torch.float32, device=x.device, requires_grad=False),\
                   torch.tensor([0], dtype=torch.float32, device=x.device, requires_grad=False)
 
-        loss: torch.Tensor | None = torch.tensor([0], dtype=torch.float32, device=x.device) if self.separate_tracks else None
+        loss: torch.Tensor | List[List[torch.Tensor]] | None = [] if self.separate_tracks else None
 
         for uid in ut_ids:
             x_map = track_idxs == uid
@@ -117,11 +119,14 @@ class ContrastiveLoss(nn.Module):
                 n_neg += x_pos.shape[0] * x_neg.shape[0]
 
             if self.separate_tracks:
-                loss = loss + self.loss(num, den, n_pos, n_neg)
-                n_pos, n_neg, num, den = 0, 0, 0, 0
+                loss.append([num, n_pos, n_neg])
+                n_pos, n_neg, num = 0, 0, 0
 
         if self.separate_tracks:
-            loss = loss/len(ut_ids)
+            loss_ = torch.tensor([0], dtype=torch.float32, device=x.device)
+            for num, n_pos, n_neg in loss:
+                loss_ = loss_ + self.loss(num, den, n_pos, n_neg)
+            loss = loss_/len(ut_ids)
         else:
             loss = self.loss(num, den, n_pos, n_neg)
 
