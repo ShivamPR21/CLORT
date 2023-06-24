@@ -1,9 +1,10 @@
 import os
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, Type
 
 import h5py
 import numpy as np
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import Dataset
 
@@ -21,7 +22,8 @@ class ArgoCL(Dataset):
                  distance_threshold: Tuple[float, float] = (0, 50),
                  img_size : Tuple[int, int] = (224, 224),
                  point_cloud_size: List[int] | int | None = None,
-                 pivot_to_first_frame: bool = False) -> None:
+                 pivot_to_first_frame: bool = False,
+                 vision_transform: Type[nn.Module] | None = None) -> None:
         super().__init__()
 
         assert(temporal_horizon > temporal_overlap and temporal_horizon != temporal_overlap)
@@ -39,6 +41,7 @@ class ArgoCL(Dataset):
         self.img_size = img_size
         self.pcs = point_cloud_size
         self.pvff = pivot_to_first_frame
+        self.vt = vision_transform
 
         # Get all log files
         self.log_files: List[h5py.File | h5py.Group] = []
@@ -267,6 +270,8 @@ class ArgoCL(Dataset):
             #     , dim=0)                                           # [_//3, 3, 250, 250] # dimension 1 is number of views which
             #                                                                                                 # can be extracted with $imgs_sz$ split
             imgs = F.interpolate(imgs, self.img_size, mode='bilinear')
+            if self.vt is not None:
+                imgs = self.vt(imgs)
 
         if self.bx:
             # bboxs = torch.cat(
