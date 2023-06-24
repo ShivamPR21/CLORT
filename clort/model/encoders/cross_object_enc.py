@@ -1,3 +1,5 @@
+from typing import Callable
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -7,7 +9,9 @@ from moduleZoo.graphs import GraphConv, SelfGraphAttentionLinear
 
 class CrossObjectEncoder(nn.Module):
 
-    def __init__(self, in_dim : int = 256, out_dim : int = 128) -> None:
+    def __init__(self, in_dim : int = 256, out_dim : int = 128,
+                 norm_layer: Callable[..., nn.Module] | None = nn.LayerNorm,
+                 activation_layer: Callable[..., nn.Module] | None = nn.SELU) -> None:
         super().__init__()
 
         self.eps = 1e-9
@@ -20,23 +24,23 @@ class CrossObjectEncoder(nn.Module):
         self.gat1 = SelfGraphAttentionLinear(self.in_dim, None, residual=True, dynamic_batching=True)
         self.conv1 = GraphConv(self.in_dim, enc_layers[0], bias=True, k=10,
                                reduction='max', features='local+global',
-                               norm_layer=nn.BatchNorm1d, activation_layer=nn.Tanh,
+                               norm_layer=norm_layer, activation_layer=activation_layer,
                                dynamic_batching=True, enable_offloading=False)
 
         self.gat2 = SelfGraphAttentionLinear(enc_layers[0], None, residual=True, dynamic_batching=True)
         self.conv2 = GraphConv(enc_layers[0], enc_layers[1], bias=True, k=10,
                                reduction='max', features='local+global',
-                               norm_layer=nn.BatchNorm1d, activation_layer=nn.Tanh,
+                               norm_layer=norm_layer, activation_layer=activation_layer,
                                dynamic_batching=True, enable_offloading=False)
 
         self.gat3 = SelfGraphAttentionLinear(enc_layers[1], None, residual=True, dynamic_batching=True)
         self.conv3 = GraphConv(enc_layers[1], enc_layers[2], bias=True, k=10,
                                reduction='max', features='local+global',
-                               norm_layer=nn.BatchNorm1d, activation_layer=nn.Tanh,
+                               norm_layer=norm_layer, activation_layer=activation_layer,
                                dynamic_batching=True, enable_offloading=False)
 
         self.projection_head = LinearNormActivation(np.sum(enc_layers), self.out_dim, bias=True,
-                                                    norm_layer=None, activation_layer=nn.Tanh)
+                                                    norm_layer=None, activation_layer=None)
 
     def forward(self, obj_encs: torch.Tensor, n_nodes: np.ndarray) -> torch.Tensor:
         obj_encs1 = self.conv1(self.gat1(obj_encs, n_nodes), n_nodes)

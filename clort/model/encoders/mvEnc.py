@@ -68,7 +68,7 @@ class SingleViewEncoder(nn.Module):
                                           norm_layer=norm_layer, activation_layer=nn.SELU)
 
         self.conv2_proj = ConvNormActivation2d(128, 128, kernel_size=5, stride=5,
-                                          norm_layer=None, activation_layer=None)
+                                               bias=False, norm_layer=None, activation_layer=None)
 
         self.res3 = ConvBottleNeckResidualBlock2d(128, 4, 64, kernel_size=3, stride=1,
                                                   norm_layer=norm_layer, activation_layer=nn.SELU)
@@ -77,7 +77,7 @@ class SingleViewEncoder(nn.Module):
                                                   norm_layer=norm_layer, activation_layer=nn.SELU)
 
         self.res4_proj = ConvNormActivation2d(128, 128, kernel_size=3, stride=2,
-                                          norm_layer=None, activation_layer=None)
+                                               bias=False, norm_layer=None, activation_layer=None)
 
         self.res5 = ConvInvertedResidualBlock2d(128, 2, 256, kernel_size=3, stride=1,
                                                 norm_layer=norm_layer, activation_layer=nn.SELU)
@@ -86,7 +86,7 @@ class SingleViewEncoder(nn.Module):
                                                 norm_layer=norm_layer, activation_layer=nn.SELU)
 
         self.res6_proj = ConvNormActivation2d(128, 128, kernel_size=3, stride=2,
-                                            norm_layer=None, activation_layer=None)
+                                               bias=False, norm_layer=None, activation_layer=None)
 
         self.res7 = ConvResidualBlock2d(128, 512, kernel_size=3, stride=2,
                                          norm_layer=norm_layer, activation_layer=nn.SELU)
@@ -126,6 +126,9 @@ class MultiViewEncoder(nn.Module):
 
         self.sv_enc1 = SingleViewEncoder(self.image_shape, 3, 512, norm_layer=norm_2d) if sv_backbone is None else sv_backbone
 
+        self.layer_norm1 = nn.LayerNorm(512)
+        self.act1 = nn.SELU()
+
         self.max_pool = nn.AdaptiveMaxPool2d(output_size=(1, 1))
         self.sv_enc2 = LinearNormActivation(512, 256, norm_layer=norm_1d, activation_layer=nn.SELU)
         self.sv_enc3 = LinearNormActivation(256, 128, activation_layer=nn.SELU)
@@ -144,6 +147,8 @@ class MultiViewEncoder(nn.Module):
 
         if not x.ndim == 2:
             x = self.max_pool(x).flatten(start_dim=1) # [N, 512]
+
+        x = self.act1(self.layer_norm1(x))
 
         x = self.sv_enc3(self.sv_enc2(x)) # [N, 128]
 

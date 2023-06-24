@@ -8,6 +8,7 @@ class ContrastiveLoss(nn.Module):
     def __init__(self,
                  temp: float = 0.3,
                  eps: float = 1e-9,
+                 local_contrast: bool = True,
                  static_contrast: bool = False,
                  use_hard_condition: bool = False,
                  hard_condition_proportion: float = 0.5,
@@ -16,6 +17,7 @@ class ContrastiveLoss(nn.Module):
 
         self.temp = temp
         self.eps = eps
+        self.local_contrast = local_contrast
 
         self.stc = static_contrast
 
@@ -37,12 +39,20 @@ class ContrastiveLoss(nn.Module):
 
         ut_ids = track_idxs.unique()
 
-        y = y[ut_ids, :, :]
+        y_idxs : torch.Tensor | None = None
 
-        _, Q, _ = y.size()
-        y = y.flatten(0, 1)
+        if self.local_contrast:
+            y = y[ut_ids, :, :]
 
-        y_idxs = ut_ids.repeat(Q)
+            _, Q, _ = y.size()
+            y = y.flatten(0, 1)
+
+            y_idxs = ut_ids.repeat(Q)
+        else:
+            n, Q, _ = y.size()
+            y = y.flatten(0, 1)
+
+            y_idxs = torch.arange(n, dtype=torch.int32).repeat(Q)
 
         num, den = torch.zeros(1, device=x.device), torch.zeros(1, device=x.device)
         n_pos, n_neg = \

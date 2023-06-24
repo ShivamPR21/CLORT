@@ -1,3 +1,5 @@
+from typing import Callable
+
 import torch
 import torch.nn as nn
 from moduleZoo.attention import SelfAttentionLinear
@@ -6,11 +8,12 @@ from moduleZoo.dense import LinearNormActivation
 
 class MultiModalEncoder(nn.Module):
 
-    def __init__(self, mv_in_dim = 256, pc_in_dim = 128, out_dim: int = 128) -> None:
+    def __init__(self, mv_in_dim = 256, pc_in_dim = 128, out_dim: int = 128,
+                 norm_layer: Callable[..., nn.Module] | None = nn.LayerNorm,
+                 activation_layer: Callable[..., nn.Module] | None = nn.SELU) -> None:
         super().__init__()
 
         self.eps = 1e-9
-        self.act = nn.Tanh()
 
         self.gat_mv1 = SelfAttentionLinear(mv_in_dim, 128,
                                             residual=True)
@@ -22,7 +25,9 @@ class MultiModalEncoder(nn.Module):
         self.combined_gat = SelfAttentionLinear(128, 128,
                                                 residual=True)
 
-        self.projection_head = LinearNormActivation(128, out_dim, bias=True, activation_layer=nn.Tanh)
+        self.projection_head = LinearNormActivation(128, out_dim, bias=True,
+                                                    norm_layer=norm_layer,
+                                                    activation_layer=activation_layer)
 
     def forward(self, mv_enc: torch.Tensor, pc_enc: torch.Tensor) -> torch.Tensor:
         # mv_enc -> [n_obj, N_mv]

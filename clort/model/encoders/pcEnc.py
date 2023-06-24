@@ -1,4 +1,4 @@
-from typing import List
+from typing import Callable, List
 
 import numpy as np
 import torch
@@ -9,22 +9,25 @@ from moduleZoo.graphs import GraphConv
 
 class BboxEncoder(nn.Module):
 
-    def __init__(self, out_dim: int = 64) -> None:
+    def __init__(self, out_dim: int = 64,
+                 norm_layer: Callable[..., nn.Module] | None = nn.LayerNorm,
+                 activation_layer: Callable[..., nn.Module] | None = nn.SELU) -> None:
         super().__init__()
 
         self.graph_conv1 = GraphConv(3, 64, k=4, reduction='max',
                                     features='local+global',
-                                    norm_layer=nn.BatchNorm1d,
-                                    activation_layer=nn.ReLU6,
+                                    norm_layer=norm_layer,
+                                    activation_layer=activation_layer,
                                     dynamic_batching=False)
 
         self.graph_conv2 = GraphConv(64, 64, k=4, reduction='max',
                                     features='local+global',
-                                    norm_layer=nn.BatchNorm1d,
-                                    activation_layer=nn.ReLU6,
+                                    norm_layer=norm_layer,
+                                    activation_layer=activation_layer,
                                     dynamic_batching=False)
 
-        self.projection_head = LinearNormActivation(64*2, out_dim, bias=True, activation_layer=nn.ReLU6)
+        self.projection_head = LinearNormActivation(64*2, out_dim, bias=True,
+                                                    norm_layer=norm_layer, activation_layer=activation_layer)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # x -> [n_obj, 8, 3]
@@ -38,35 +41,38 @@ class BboxEncoder(nn.Module):
 
 class PointCloudEncoder(nn.Module):
 
-    def __init__(self, out_dims : int = 128, bbox_aug : bool = True) -> None:
+    def __init__(self, out_dims : int = 128, bbox_aug : bool = True,
+                 norm_layer: Callable[..., nn.Module] | None = nn.LayerNorm,
+                 activation_layer: Callable[..., nn.Module] | None = nn.SELU) -> None:
         super().__init__()
 
         self.eps = 1e-9
         self.graph_conv1 = GraphConv(3, 64, k=10, reduction='max',
                                     features='local+global',
-                                    norm_layer=nn.BatchNorm1d,
-                                    activation_layer=nn.ReLU6,
+                                    norm_layer=norm_layer,
+                                    activation_layer=activation_layer,
                                     dynamic_batching=True)
 
         self.graph_conv2 = GraphConv(64, 64, k=10, reduction='max',
-                            features='local+global',
-                            norm_layer=None,
-                            activation_layer=nn.ReLU6,
-                            dynamic_batching=True)
+                                    features='local+global',
+                                    norm_layer=norm_layer,
+                                    activation_layer=activation_layer,
+                                    dynamic_batching=True)
 
         self.graph_conv3 = GraphConv(64, 64, k=10, reduction='max',
-                            features='local+global',
-                            norm_layer=nn.BatchNorm1d,
-                            activation_layer=nn.ReLU6,
-                            dynamic_batching=True)
+                                    features='local+global',
+                                    norm_layer=norm_layer,
+                                    activation_layer=activation_layer,
+                                    dynamic_batching=True)
 
         self.graph_conv4 = GraphConv(64, 64, k=10, reduction='max',
-                            features='local+global',
-                            norm_layer=None,
-                            activation_layer=nn.ReLU6,
-                            dynamic_batching=True)
+                                    features='local+global',
+                                    norm_layer=norm_layer,
+                                    activation_layer=activation_layer,
+                                    dynamic_batching=True)
 
-        self.bbox_enc = BboxEncoder(64) if bbox_aug else None
+        self.bbox_enc = BboxEncoder(64, norm_layer=norm_layer,
+                                    activation_layer=activation_layer) if bbox_aug else None
 
         self.projection_head = LinearNormActivation(64*4 + (64 if bbox_aug else 0), out_dims, bias=True, activation_layer=nn.Tanh)
 
