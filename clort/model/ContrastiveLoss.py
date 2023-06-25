@@ -9,7 +9,6 @@ class ContrastiveLoss(nn.Module):
 
     def __init__(self,
                  temp: float = 0.3,
-                 eps: float = 1e-9,
                  local_contrast: bool = True,
                  separate_tracks: bool = False,
                  static_contrast: bool = False,
@@ -19,7 +18,6 @@ class ContrastiveLoss(nn.Module):
         super().__init__()
 
         self.temp = temp
-        self.eps = eps
         self.local_contrast = local_contrast
         self.separate_tracks = separate_tracks
 
@@ -29,21 +27,19 @@ class ContrastiveLoss(nn.Module):
 
         self.stp = shift_to_positive
 
-        self.eps2 = 1e-10
-
         self.min, self.max = np.exp(-1./self.temp), np.exp(1./self.temp)
 
     def loss(self, num:torch.Tensor, den:torch.Tensor, n_pos:torch.Tensor, n_neg:torch.Tensor) -> torch.Tensor:
         loss : torch.Tensor | None = None
 
         if not self.hc:
-            loss = -(num/(den+num+self.eps)+self.eps2).log()
+            loss = -(num/(den+num)).log()
             if self.stp:
-                loss = loss + ((n_pos*self.max/(n_neg*self.min + n_pos*self.max + self.eps))+self.eps2).log()
+                loss = loss + (n_pos*self.max/(n_neg*self.min + n_pos*self.max)).log()
         else:
-            loss = (self.hcp*num + (den+num+self.eps).log())/(self.hcp+1.)
+            loss = (self.hcp*num + (den+num).log())/(self.hcp+1.)
             if self.stp:
-                loss = loss - (n_neg*self.min + n_pos*self.max + self.eps2).log()/(self.hcp+1.)
+                loss = loss - (n_neg*self.min + n_pos*self.max).log()/(self.hcp+1.)
 
         return loss
 
