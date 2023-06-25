@@ -31,7 +31,7 @@ class ContrastiveLoss(nn.Module):
 
         self.eps2 = 1e-10
 
-        self.min_loss = np.exp(2./self.temp) if not self.hc else np.exp(-1./self.temp)
+        self.min, self.max = np.exp(-1./self.temp), np.exp(1./self.temp)
 
     def loss(self, num:torch.Tensor, den:torch.Tensor, n_pos:torch.Tensor, n_neg:torch.Tensor) -> torch.Tensor:
         loss : torch.Tensor | None = None
@@ -39,11 +39,11 @@ class ContrastiveLoss(nn.Module):
         if not self.hc:
             loss = -(num/(den+num+self.eps)+self.eps2).log()
             if self.stp:
-                loss = loss + ((n_pos/(n_neg + self.eps))*self.min_loss+self.eps2).log()
+                loss = loss + ((n_pos*self.max/(n_neg*self.min + n_pos*self.max + self.eps))+self.eps2).log()
         else:
             loss = (self.hcp*num + (den+num+self.eps).log())/(self.hcp+1.)
             if self.stp:
-                loss = loss - (n_neg*self.min_loss+self.eps2).log()/(self.hcp+1.)
+                loss = loss - (n_neg*self.min + n_pos*self.max + self.eps2).log()/(self.hcp+1.)
 
         return loss
 
@@ -119,12 +119,12 @@ class ContrastiveLoss(nn.Module):
                 n_neg += x_pos.shape[0] * x_neg.shape[0]
 
             if self.separate_tracks:
-                loss.append([num, n_pos, n_neg])
-                n_pos, n_neg, num = 0, 0, 0
+                loss.append([num, den, n_pos, n_neg])
+                n_pos, n_neg, num, den = 0, 0, 0, 0
 
         if self.separate_tracks:
             loss_ = torch.tensor([0], dtype=torch.float32, device=x.device)
-            for num, n_pos, n_neg in loss:
+            for num, den, n_pos, n_neg in loss:
                 loss_ = loss_ + self.loss(num, den, n_pos, n_neg)
             loss = loss_/len(ut_ids)
         else:
