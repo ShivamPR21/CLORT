@@ -71,7 +71,7 @@ class ArgoCL(Dataset):
             self.frames.update({log.name : list(log.keys())}) # type: ignore
             self.sorted_logs.append(log.name)
 
-        self.n = [len(self.frames[log])//(self.th - self.to) for log in self.sorted_logs]
+        self.n = [int(np.ceil(len(self.frames[log])/(self.th - self.to))) for log in self.sorted_logs]
         self.N = np.sum(self.n)
 
     # def __del__(self):
