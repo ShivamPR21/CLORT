@@ -1,8 +1,12 @@
-from typing import List
+from typing import Callable, List
 
 import torch
 import torch.nn as nn
 
+
+def dot_similarity(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+    sim = x @ y.T
+    return sim
 
 class ContrastiveLoss(nn.Module):
 
@@ -12,7 +16,9 @@ class ContrastiveLoss(nn.Module):
                  separate_tracks: bool = False,
                  static_contrast: bool = False,
                  use_hard_condition: bool = False,
-                 hard_condition_proportion: float = 0.5) -> None:
+                 hard_condition_proportion: float = 0.5,
+                 sim_type: str = "dot", #"dot/diff" #TODO@ShivamPR21 Ad-hoc short term inplace remedy until sim-fxn is implemented
+                 sim_fxn: Callable[[torch.Tensor, torch.Tensor], torch.Tensor] = dot_similarity) -> None:
         super().__init__()
 
         self.temp = temp
@@ -22,6 +28,10 @@ class ContrastiveLoss(nn.Module):
         self.stc = static_contrast
 
         self.hc, self.hcp = use_hard_condition, hard_condition_proportion
+
+        self.sim_type = sim_type #TODO@ShivamPR21 Ad-hoc short term inplace remedy until sim-fxn is implemented
+
+        self.sim_fxn = sim_fxn #TODO@ShivamPR21 : Upgrade to Similarity function based disparity measure
 
     def loss(self, num:torch.Tensor, den:torch.Tensor) -> torch.Tensor:
         loss : torch.Tensor | None = None
@@ -75,7 +85,12 @@ class ContrastiveLoss(nn.Module):
             x_pos, y_pos = x_pos.unsqueeze(dim=1), y_pos.unsqueeze(dim=0)
 
             if not self.hc:
-                num = num + ((x_pos * y_pos).sum(dim=-1)/self.temp).exp().sum()
+                if self.sim_type == "dot":
+                    num = num + ((x_pos * y_pos).sum(dim=-1)/self.temp).exp().sum()
+                elif self.sim_type == "diff":
+                    num = num + (-((x_pos - y_pos).norm(dim=-1))/self.temp).exp().sum()
+                else:
+                    raise NotImplementedError(f'Similarity Type: {self.sim_type} not implemented')
             else:
                 num = num + ((x_pos - y_pos).norm(dim=-1)).sum()
 
@@ -84,7 +99,12 @@ class ContrastiveLoss(nn.Module):
             if self.stc:
                 tmp = 0
                 if not self.hc:
-                    tmp = ((x_pos * x_pos.transpose(0, 1)).sum(dim=-1)/self.temp).exp()
+                    if self.sim_type == "dot":
+                        tmp = ((x_pos * x_pos.transpose(0, 1)).sum(dim=-1)/self.temp).exp()
+                    elif self.sim_type == "diff":
+                        tmp = (-((x_pos - x_pos.transpose(0, 1)).norm(dim=-1))/self.temp).exp()
+                    else:
+                        raise NotImplementedError(f'Similarity Type: {self.sim_type} not implemented')
                 else:
                     tmp = ((x_pos - x_pos.transpose(0, 1)).norm(dim=-1))
 
@@ -97,11 +117,21 @@ class ContrastiveLoss(nn.Module):
 
             x_neg, y_neg = x_neg.unsqueeze(dim=0), y_neg.unsqueeze(dim=0)
 
-            den = den + ((x_pos * y_neg).sum(dim=-1)/self.temp).exp().sum()
+            if self.sim_type == "dot":
+                den = den + ((x_pos * y_neg).sum(dim=-1)/self.temp).exp().sum()
+            elif self.sim_type == "diff":
+                den = den + (- ((x_pos - y_neg).norm(dim=-1))/self.temp).exp().sum()
+            else:
+                raise NotImplementedError(f'Similarity Type: {self.sim_type} not implemented')
             n_neg += x_neg.shape[0] * y_neg.shape[1]
 
             if self.stc:
-                den = den + ((x_pos * x_neg).sum(dim=-1)/self.temp).exp().sum()
+                if self.sim_type == "dot":
+                    den = den + ((x_pos * x_neg).sum(dim=-1)/self.temp).exp().sum()
+                elif self.sim_type == "diff":
+                    den = den + (-((x_pos - x_neg).norm(dim=-1))/self.temp).exp().sum()
+                else:
+                    raise NotImplementedError(f'Similarity Type: {self.sim_type} not implemented')
                 n_neg += x_pos.shape[0] * x_neg.shape[0]
 
             if self.separate_tracks:
