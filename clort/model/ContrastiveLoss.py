@@ -1,6 +1,5 @@
 from typing import List
 
-import numpy as np
 import torch
 import torch.nn as nn
 
@@ -13,8 +12,7 @@ class ContrastiveLoss(nn.Module):
                  separate_tracks: bool = False,
                  static_contrast: bool = False,
                  use_hard_condition: bool = False,
-                 hard_condition_proportion: float = 0.5,
-                 shift_to_positive: bool = False) -> None:
+                 hard_condition_proportion: float = 0.5) -> None:
         super().__init__()
 
         self.temp = temp
@@ -25,21 +23,13 @@ class ContrastiveLoss(nn.Module):
 
         self.hc, self.hcp = use_hard_condition, hard_condition_proportion
 
-        self.stp = shift_to_positive
-
-        self.min, self.max = np.exp(-1./self.temp), np.exp(1./self.temp)
-
-    def loss(self, num:torch.Tensor, den:torch.Tensor, n_pos:torch.Tensor, n_neg:torch.Tensor) -> torch.Tensor:
+    def loss(self, num:torch.Tensor, den:torch.Tensor) -> torch.Tensor:
         loss : torch.Tensor | None = None
 
         if not self.hc:
             loss = -(num/(den+num)).log()
-            if self.stp:
-                loss = loss + (n_pos*self.max/(n_neg*self.min + n_pos*self.max)).log()
         else:
             loss = (self.hcp*num + (den+num).log())/(self.hcp+1.)
-            if self.stp:
-                loss = loss - (n_neg*self.min + n_pos*self.max).log()/(self.hcp+1.)
 
         return loss
 
@@ -120,10 +110,10 @@ class ContrastiveLoss(nn.Module):
 
         if self.separate_tracks:
             loss_ = torch.tensor([0], dtype=torch.float32, device=x.device)
-            for num, den, n_pos, n_neg in loss:
-                loss_ = loss_ + self.loss(num, den, n_pos, n_neg)
+            for num, den, _, _ in loss:
+                loss_ = loss_ + self.loss(num, den)
             loss = loss_/len(ut_ids)
         else:
-            loss = self.loss(num, den, n_pos, n_neg)
+            loss = self.loss(num, den)
 
         return loss
