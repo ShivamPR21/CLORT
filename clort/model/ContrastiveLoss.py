@@ -92,7 +92,8 @@ class ContrastiveLoss(nn.Module):
                 else:
                     raise NotImplementedError(f'Similarity Type: {self.sim_type} not implemented')
             else:
-                num = num + ((x_pos - y_pos).norm(dim=-1)).sum()
+                num = num + ((x_pos - y_pos).norm(dim=-1)).mean() # Hard constraint numerator is added to
+                                                                # loss thus needs to mean instead of sum
 
             n_pos += x_pos.shape[0] * y_pos.shape[1]
 
@@ -109,7 +110,8 @@ class ContrastiveLoss(nn.Module):
                     tmp = ((x_pos - x_pos.transpose(0, 1)).norm(dim=-1))
 
                 tmp = tmp * (1.0 - torch.eye(tmp.shape[0], dtype=torch.float32, device=x.device))
-                num = num + tmp.sum()/2.
+                num = num + (tmp.sum()/2. if not self.hc else tmp.mean()) # Hard constraint numerator is added to
+                                                                # loss thus needs to mean instead of sum
                 n_pos += (x_pos.shape[0]*(x_pos.shape[0] - 1)/2.)
 
             x_neg = x[~x_map, :]

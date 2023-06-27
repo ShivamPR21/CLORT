@@ -17,8 +17,6 @@ class CrossObjectEncoder(nn.Module):
         self.eps = 1e-9
         self.in_dim, self.out_dim = in_dim, out_dim
 
-        self.act = nn.Tanh()
-
         enc_layers = [128, 64, 128]
 
         self.gat1 = SelfGraphAttentionLinear(self.in_dim, None, residual=True, dynamic_batching=True)
