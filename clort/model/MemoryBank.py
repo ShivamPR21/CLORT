@@ -23,6 +23,9 @@ class MemoryBank:
 
         self.memory = torch.zeros((n_tracks, Q, N), dtype=torch.float32, device=self.device)
 
+    def reset(self):
+        self.memory *= 0.
+
     def update(self, reprs: torch.Tensor, track_idxs: torch.Tensor) -> None:
         # Warning: Use normalized representations
         # track_idxs -> [n, ]
@@ -68,6 +71,11 @@ class MemoryBankInfer:
         self.count = torch.zeros((n_tracks, 1), dtype=torch.float32, device=self.device)
 
         self.memory = torch.zeros((n_tracks, Q, N), dtype=torch.float32, device=self.device)
+
+    def reset(self):
+        self.beta *= 0
+        self.count *= 0.
+        self.memory *= 0.
 
     def update(self, reprs: torch.Tensor, track_idxs: torch.Tensor) -> None:
         # reprs -> [n_tracks, N]
