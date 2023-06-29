@@ -126,8 +126,9 @@ class PCLGaussianNoise(nn.Module):
 
     def forward(self, pcl:np.ndarray) -> np.ndarray:
         perturb = np.clip(np.random.randn(*pcl.shape) * self.std + self.mean,
-                          -self.limit, self.limit)
-        return pcl + perturb
+                          -self.limit, self.limit, dtype=np.float32)
+        pcl = pcl + perturb
+        return pcl
 
 class PCLRigidTransformNoise(nn.Module):
 
@@ -140,7 +141,7 @@ class PCLRigidTransformNoise(nn.Module):
         self.std_r, self.std_t = std if isinstance(std, tuple) else (std, std)
         self.rot_lim, self.trns_lim = rot_lim, trns_lim
 
-    def forward(self, pcd: np.ndarray) -> np.ndarray:
+    def forward(self, pcl: np.ndarray) -> np.ndarray:
         rand_rot = R.from_euler('zxy',
                                 np.clip(np.random.randn(3,) * self.std_r + self.mean_r,
                                         -self.rot_lim, self.rot_lim)).as_matrix()
@@ -148,6 +149,6 @@ class PCLRigidTransformNoise(nn.Module):
         rand_t = np.clip(np.random.randn(1, 3) * self.std_t + self.mean_t,
                          -self.trns_lim, self.trns_lim)
 
-        pcd = pcd @ rand_rot + rand_t
+        pcl = (pcl @ rand_rot + rand_t).astype(np.float32)
 
-        return pcd
+        return pcl

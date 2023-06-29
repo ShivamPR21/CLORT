@@ -136,7 +136,7 @@ class ArgoCL(Dataset):
                            bx : bool = True, glc : bool = True) -> List[Dict[str, np.ndarray | int]]:
         frame_data : List[Dict[str, np.ndarray | int]] = []
 
-        R, t = np.eye(3), np.zeros((3, ))
+        R, t = np.eye(3, dtype=np.float32), np.zeros((3, ), dtype=np.float32)
         if glc:
             tr = np.asanyarray(frame_log['local_to_global_transform'], dtype=np.float32)
             R, t = tr[:, :3], tr[:, 3]
