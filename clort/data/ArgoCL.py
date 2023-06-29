@@ -23,7 +23,8 @@ class ArgoCL(Dataset):
                  img_size : Tuple[int, int] = (224, 224),
                  point_cloud_size: List[int] | int | None = None,
                  pivot_to_first_frame: bool = False,
-                 vision_transform: Type[nn.Module] | None = None) -> None:
+                 vision_transform: Type[nn.Module] | None = None,
+                 pcl_transform: Type[nn.Module] | None = None) -> None:
         super().__init__()
 
         assert(temporal_horizon > temporal_overlap and temporal_horizon != temporal_overlap)
@@ -41,6 +42,7 @@ class ArgoCL(Dataset):
         self.pcs = point_cloud_size
         self.pvff = pivot_to_first_frame
         self.vt = vision_transform
+        self.pcl_tr = pcl_transform
 
         # Get all log files
         self.log_files: List[h5py.File | h5py.Group] = []
@@ -170,12 +172,14 @@ class ArgoCL(Dataset):
                 point_cloud = self.sample_point_cloud(np.asanyarray(frame_log[f'{det}/pcl'], dtype=np.float32))
                 if glc:
                     point_cloud = point_cloud @ R + t
+                if self.pcl_tr is not None:
+                    point_cloud = self.pcl_tr(point_cloud)
                 det_data.update({'pcl' : point_cloud})
 
             if bx:
                 # bbox = np.asanyarray(frame_log[f'{det}/bbox'], dtype=np.float32)
                 if glc:
-                    bbox = bbox @ R + t
+                    bbox = bbox @ R + t # type: ignore
                 det_data.update({'bbox' : bbox})
 
             if im:
@@ -272,7 +276,7 @@ class ArgoCL(Dataset):
             #                                                                                                 # can be extracted with $imgs_sz$ split
             imgs = F.interpolate(imgs, self.img_size, mode='bilinear')
             if self.vt is not None:
-                imgs = self.vt(imgs)
+                imgs = self.vt(imgs) # type: ignore
 
         if self.bx:
             # bboxs = torch.cat(

@@ -3,6 +3,8 @@ from .encoders import (
     CrossObjectEncoder,
     MultiModalEncoder,
     MultiViewEncoder,
+    PCLGaussianNoise,
+    PCLRigidTransformNoise,
     PointCloudEncoder,
 )
 from .MemoryBank import MemoryBank, MemoryBankInfer
@@ -13,4 +15,6 @@ __all__ = ('MemoryBank',
             'CrossObjectEncoder',
             'MultiViewEncoder',
             'PointCloudEncoder',
+            'PCLGaussianNoise',
+            'PCLRigidTransformNoise',
             'ContrastiveLoss')

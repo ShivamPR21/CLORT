@@ -1,10 +1,11 @@
-from typing import Callable, List
+from typing import Callable, List, Tuple
 
 import numpy as np
 import torch
 import torch.nn as nn
 from moduleZoo.dense import LinearNormActivation
 from moduleZoo.graphs import GraphConv
+from scipy.spatial.transform import Rotation as R
 
 
 class BboxEncoder(nn.Module):
@@ -74,7 +75,7 @@ class PointCloudEncoder(nn.Module):
         self.bbox_enc = BboxEncoder(64, norm_layer=norm_layer,
                                     activation_layer=activation_layer) if bbox_aug else None
 
-        self.projection_head = LinearNormActivation(64*4 + (64 if bbox_aug else 0), out_dims, bias=True, activation_layer=nn.Tanh)
+        self.projection_head = LinearNormActivation(64*4 + (64 if bbox_aug else 0), out_dims, bias=True, activation_layer=None)
 
     def aggregate(self, f: torch.Tensor, sz_arr: List[List[int]]) -> torch.Tensor:
         out = torch.zeros((len(sz_arr), f.shape[-1]), dtype=torch.float32, device=f.device)
@@ -112,3 +113,41 @@ class PointCloudEncoder(nn.Module):
         f = f/(f.norm(dim=1, keepdim=True) + self.eps)
 
         return f
+
+class PCLGaussianNoise(nn.Module):
+
+    def __init__(self, mean: float = 0,
+                 std: float = 1,
+                 tr_lim: float = 2) -> None:
+        super().__init__()
+        self.mean = mean
+        self.std = std
+        self.limit = tr_lim
+
+    def forward(self, pcl:np.ndarray) -> np.ndarray:
+        perturb = np.clip(np.random.randn(*pcl.shape) * self.std + self.mean,
+                          -self.limit, self.limit)
+        return pcl + perturb
+
+class PCLRigidTransformNoise(nn.Module):
+
+    def __init__(self, mean: Tuple[float, float] | float = 0,
+                 std: Tuple[float, float] | float = 1,
+                 rot_lim: float = np.pi/12,
+                 trns_lim: float = 2) -> None:
+        super().__init__()
+        self.mean_r, self.mean_t = mean if isinstance(mean, tuple) else (mean, mean)
+        self.std_r, self.std_t = std if isinstance(std, tuple) else (std, std)
+        self.rot_lim, self.trns_lim = rot_lim, trns_lim
+
+    def forward(self, pcd: np.ndarray) -> np.ndarray:
+        rand_rot = R.from_euler('zxy',
+                                np.clip(np.random.randn(3,) * self.std_r + self.mean_r,
+                                        -self.rot_lim, self.rot_lim)).as_matrix()
+
+        rand_t = np.clip(np.random.randn(1, 3) * self.std_t + self.mean_t,
+                         -self.trns_lim, self.trns_lim)
+
+        pcd = pcd @ rand_rot + rand_t
+
+        return pcd
