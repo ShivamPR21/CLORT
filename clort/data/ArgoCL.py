@@ -180,6 +180,8 @@ class ArgoCL(Dataset):
                 # bbox = np.asanyarray(frame_log[f'{det}/bbox'], dtype=np.float32)
                 if glc:
                     bbox = bbox @ R + t # type: ignore
+                if self.pcl_tr is not None:
+                    bbox = self.pcl_tr(bbox)
                 det_data.update({'bbox' : bbox})
 
             if im:
