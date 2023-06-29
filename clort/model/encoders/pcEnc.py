@@ -12,20 +12,23 @@ class BboxEncoder(nn.Module):
 
     def __init__(self, out_dim: int = 64,
                  norm_layer: Callable[..., nn.Module] | None = nn.LayerNorm,
-                 activation_layer: Callable[..., nn.Module] | None = nn.SELU) -> None:
+                 activation_layer: Callable[..., nn.Module] | None = nn.SELU,
+                 offloading: bool = True) -> None:
         super().__init__()
 
         self.graph_conv1 = GraphConv(3, 64, k=4, reduction='max',
                                     features='local+global',
                                     norm_layer=norm_layer,
                                     activation_layer=activation_layer,
-                                    dynamic_batching=False)
+                                    dynamic_batching=False,
+                                    enable_offloading=offloading)
 
         self.graph_conv2 = GraphConv(64, 64, k=4, reduction='max',
                                     features='local+global',
                                     norm_layer=norm_layer,
                                     activation_layer=activation_layer,
-                                    dynamic_batching=False)
+                                    dynamic_batching=False,
+                                    enable_offloading=offloading)
 
         self.projection_head = LinearNormActivation(64*2, out_dim, bias=True,
                                                     norm_layer=norm_layer, activation_layer=activation_layer)
@@ -44,7 +47,8 @@ class PointCloudEncoder(nn.Module):
 
     def __init__(self, out_dims : int = 128, bbox_aug : bool = True,
                  norm_layer: Callable[..., nn.Module] | None = nn.LayerNorm,
-                 activation_layer: Callable[..., nn.Module] | None = nn.SELU) -> None:
+                 activation_layer: Callable[..., nn.Module] | None = nn.SELU,
+                 offloading = True) -> None:
         super().__init__()
 
         self.eps = 1e-9
@@ -52,28 +56,33 @@ class PointCloudEncoder(nn.Module):
                                     features='local+global',
                                     norm_layer=norm_layer,
                                     activation_layer=activation_layer,
-                                    dynamic_batching=True)
+                                    dynamic_batching=True,
+                                    enable_offloading=offloading)
 
         self.graph_conv2 = GraphConv(64, 64, k=10, reduction='max',
                                     features='local+global',
                                     norm_layer=norm_layer,
                                     activation_layer=activation_layer,
-                                    dynamic_batching=True)
+                                    dynamic_batching=True,
+                                    enable_offloading=offloading)
 
         self.graph_conv3 = GraphConv(64, 64, k=10, reduction='max',
                                     features='local+global',
                                     norm_layer=norm_layer,
                                     activation_layer=activation_layer,
-                                    dynamic_batching=True)
+                                    dynamic_batching=True,
+                                    enable_offloading=offloading)
 
         self.graph_conv4 = GraphConv(64, 64, k=10, reduction='max',
                                     features='local+global',
                                     norm_layer=norm_layer,
                                     activation_layer=activation_layer,
-                                    dynamic_batching=True)
+                                    dynamic_batching=True,
+                                    enable_offloading=offloading)
 
         self.bbox_enc = BboxEncoder(64, norm_layer=norm_layer,
-                                    activation_layer=activation_layer) if bbox_aug else None
+                                    activation_layer=activation_layer,
+                                    offloading=offloading) if bbox_aug else None
 
         self.projection_head = LinearNormActivation(64*4 + (64 if bbox_aug else 0), out_dims, bias=True, activation_layer=None)
 

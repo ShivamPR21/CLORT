@@ -119,10 +119,11 @@ class ArgoCL(Dataset):
             sz = self.pcs
         else:
             curr_sz = sz
-            for i in sorted(self.pcs):
+            for _, i in enumerate(sorted(self.pcs)):
                 if i < sz:
                     curr_sz = i
                 else:
+                    curr_sz = i if _ == 0 else curr_sz
                     break
 
             sz = curr_sz
