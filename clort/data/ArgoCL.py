@@ -19,7 +19,7 @@ class ArgoCL(Dataset):
                  splits: List[str] = ['train1', 'train2', 'train3', 'train4'],
                  image : bool = True, pcl : bool = True, bbox : bool = True,
                  in_global_frame : bool = True,
-                 distance_threshold: Tuple[float, float] = (0, 50),
+                 distance_threshold: Tuple[float, float] | None = None,
                  img_size : Tuple[int, int] = (224, 224),
                  point_cloud_size: List[int] | int | None = None,
                  pivot_to_first_frame: bool = False,
@@ -37,7 +37,6 @@ class ArgoCL(Dataset):
         self.max_objects = max_objects
         self.im, self.pc, self.bx, self.glc = image, pcl, bbox, in_global_frame
         self.dt = distance_threshold
-        # self.pbq = point_batch_quantization
         self.img_size = img_size
         self.pcs = point_cloud_size
         self.pvff = pivot_to_first_frame
@@ -152,10 +151,12 @@ class ArgoCL(Dataset):
             if not det.startswith('det'):
                 continue
 
-            bbox = np.asanyarray(frame_log[f'{det}/bbox'], dtype=np.float32)
-            center_distance = np.linalg.norm(np.mean(bbox, axis=0))
-            if not (center_distance > self.dt[0] and center_distance < self.dt[1]):
-                continue
+            bbox = np.asanyarray(frame_log[f'{det}/bbox'], dtype=np.float32) if self.dt is not None or self.bx else None
+
+            if self.dt is not None:
+                center_distance = np.linalg.norm(np.mean(bbox, axis=0))
+                if not (center_distance > self.dt[0] and center_distance < self.dt[1]):
+                    continue
 
             det_data : Dict[str, np.ndarray | int] = {
                 'pcl' : np.empty((0, 3)),
@@ -256,7 +257,7 @@ class ArgoCL(Dataset):
                 cls_idxs.append(det['cls_idx']) # type: ignore
 
             if self.pvff and self.pc and pivot is None:
-                    pivot = np.concatenate(pcls, axis=0).mean(axis=0, keepdims=True)
+                pivot = np.concatenate(pcls, axis=0).mean(axis=0, keepdims=True)
 
         # Aggregate informations from all frames in temporal horizon
         if self.pc:
@@ -279,8 +280,8 @@ class ArgoCL(Dataset):
             #     dim=0) # [num_dets, 8, 3] # Concatenation on points dimension
             bboxs = torch.from_numpy(np.concatenate(bboxs, axis=0) - (pivot if pivot is not None else 0)).view(-1, 8, 3)
 
-        pcls_sz = np.array(pcls_sz, dtype=np.uint16)
-        imgs_sz = np.array(imgs_sz, dtype=np.uint8)
+        pcls_sz = np.array(pcls_sz, dtype=np.uint16) if len(pcls_sz) != 0 else []
+        imgs_sz = np.array(imgs_sz, dtype=np.uint8) if len(imgs_sz) != 0 else []
         track_idxs = np.array(track_idxs, dtype=np.uint16)
         cls_idxs = np.array(cls_idxs, dtype=np.uint8)
         frame_sz = np.array(frame_sz, dtype=np.uint16)
@@ -296,19 +297,33 @@ def ArgoCl_collate_fxn(batch:Any):
         [], [], [], [], [], [], [], [], []
 
     for sample in batch:
-        pcls.append(sample[0])
-        pcls_sz.append(sample[1])
-        imgs.append(sample[2])
-        imgs_sz.append(sample[3])
-        bboxs.append(sample[4])
+        if isinstance(sample[0], torch.Tensor):
+            pcls.append(sample[0])
+        if isinstance(sample[1], np.ndarray):
+            pcls_sz.append(sample[1])
+        if isinstance(sample[2], torch.Tensor):
+            imgs.append(sample[2])
+        if isinstance(sample[3], np.ndarray):
+            imgs_sz.append(sample[3])
+        if isinstance(sample[4], torch.Tensor):
+            bboxs.append(sample[4])
+
         track_idxs.append(sample[5])
         cls_idxs.append(sample[6])
         frame_sz.append(sample[7])
         sample_sz.append(len(sample[7]))
 
-    pcls, pcls_sz, imgs, imgs_sz, bboxs, track_idxs, cls_idxs, frame_sz, sample_sz = \
-        torch.cat(pcls, dim=0), np.concatenate(pcls_sz, axis=0), torch.cat(imgs, dim=0), \
-            np.concatenate(imgs_sz, axis=0), torch.cat(bboxs, dim=0), np.concatenate(track_idxs, axis=0), \
-                np.concatenate(cls_idxs, axis=0), np.concatenate(frame_sz, axis=0), np.array(sample_sz, dtype=int)
+    pcls = torch.cat(pcls, dim=0) if len(pcls) != 0 else []
+    pcls_sz = np.concatenate(pcls_sz, axis=0) if len(pcls_sz) != 0 else []
+
+    imgs = torch.cat(imgs, dim=0) if len(imgs) != 0 else []
+    imgs_sz = np.concatenate(imgs_sz, axis=0) if len(imgs_sz) != 0 else []
+
+    bboxs = torch.cat(bboxs, dim=0) if len(bboxs) != 0 else []
+
+    track_idxs = np.concatenate(track_idxs, axis=0)
+    cls_idxs = np.concatenate(cls_idxs, axis=0)
+    frame_sz = np.concatenate(frame_sz, axis=0)
+    sample_sz = np.array(sample_sz, dtype=int)
 
     return pcls, pcls_sz, imgs, imgs_sz, bboxs, track_idxs, cls_idxs, frame_sz, sample_sz
