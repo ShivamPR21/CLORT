@@ -49,10 +49,11 @@ class ContrastiveLoss(nn.Module):
     def forward(self, x: torch.Tensor, track_idxs: torch.Tensor, y: torch.Tensor,
                 n_tracks: np.ndarray | None = None) -> torch.Tensor:
         if n_tracks is not None and self.lcth:
+            loss = torch.tensor([0], dtype=torch.float32, device=x.device)
+
             x = x.split(n_tracks.tolist(), dim=0)
             track_idxs = track_idxs.split(n_tracks.tolist(), dim=0)
 
-            loss = torch.tensor([0], dtype=torch.float32, device=x.device)
             for i in range(len(n_tracks)):
                 loss = loss + self.forward_(x[i], track_idxs[i], y)/len(n_tracks)
 
