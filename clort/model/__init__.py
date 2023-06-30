@@ -1,6 +1,7 @@
 from .ContrastiveLoss import ContrastiveLoss
 from .encoders import (
     CrossObjectEncoder,
+    MinimalCrossObjectEncoder,
     MultiModalEncoder,
     MultiViewEncoder,
     PCLGaussianNoise,
@@ -13,6 +14,7 @@ __all__ = ('MemoryBank',
            'MemoryBankInfer',
             'MultiModalEncoder',
             'CrossObjectEncoder',
+            'MinimalCrossObjectEncoder',
             'MultiViewEncoder',
             'PointCloudEncoder',
             'PCLGaussianNoise',

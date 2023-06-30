@@ -7,6 +7,25 @@ from moduleZoo.dense import LinearNormActivation
 from moduleZoo.graphs import GraphConv, SelfGraphAttentionLinear
 
 
+class MinimalCrossObjectEncoder(nn.Module):
+
+    def __init__(self, in_dim: int, out_dim: int,
+                 norm_layer: Callable[..., nn.Module] | None = nn.LayerNorm,
+                 activation_layer: Callable[..., nn.Module] | None = nn.SELU,
+                 use_attention: bool = True) -> None:
+        super().__init__()
+        self.in_dim, self.out_dim = in_dim, out_dim
+
+        self.gat = SelfGraphAttentionLinear(self.in_dim, None, residual=True, dynamic_batching=True) if use_attention else None
+        self.conv = GraphConv(self.in_dim, self.out_dim, bias=True, k=10,
+                               reduction='max', features='local+global',
+                               norm_layer=norm_layer, activation_layer=activation_layer,
+                               dynamic_batching=True, enable_offloading=False)
+
+    def forward(self, obj_encs:torch.Tensor, n_nodes: np.ndarray) -> torch.Tensor:
+        x = self.gat(obj_encs, n_nodes) if self.gat is not None else obj_encs
+        return self.conv(x, n_nodes)
+
 class CrossObjectEncoder(nn.Module):
 
     def __init__(self, in_dim : int = 256, out_dim : int = 128,
