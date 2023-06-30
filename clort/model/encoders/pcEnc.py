@@ -25,7 +25,7 @@ class BboxEncoder(nn.Module):
                                     dynamic_batching=False,
                                     enable_offloading=offloading)
 
-        self.xo_enc1 = MinimalCrossObjectEncoder(64, 64,
+        self.xo_enc1 = MinimalCrossObjectEncoder(64, 64, k = 5,
                                                 norm_layer=norm_layer,
                                                 activation_layer=activation_layer)
 
@@ -36,7 +36,7 @@ class BboxEncoder(nn.Module):
                                     dynamic_batching=False,
                                     enable_offloading=offloading)
 
-        self.xo_enc2 = MinimalCrossObjectEncoder(64, 64,
+        self.xo_enc2 = MinimalCrossObjectEncoder(64, 64, k = 5,
                                                 norm_layer=norm_layer,
                                                 activation_layer=activation_layer)
 
@@ -74,7 +74,8 @@ class PointCloudEncoder(nn.Module):
                                     dynamic_batching=True,
                                     enable_offloading=offloading)
 
-        self.xo_enc1 = MinimalCrossObjectEncoder(64, 64, norm_layer=norm_layer,
+        self.xo_enc1 = MinimalCrossObjectEncoder(64, 64, k = 5,
+                                                 norm_layer=norm_layer,
                                                  activation_layer=activation_layer)
 
         self.graph_conv2 = GraphConv(64, 64, k=10, reduction='max',
@@ -84,8 +85,9 @@ class PointCloudEncoder(nn.Module):
                                     dynamic_batching=True,
                                     enable_offloading=offloading)
 
-        self.xo_enc2 = MinimalCrossObjectEncoder(64, 64, norm_layer=norm_layer,
-                                            activation_layer=activation_layer)
+        self.xo_enc2 = MinimalCrossObjectEncoder(64, 64, k = 5,
+                                                 norm_layer=norm_layer,
+                                                 activation_layer=activation_layer)
 
         self.graph_conv3 = GraphConv(64, 64, k=10, reduction='max',
                                     features='local+global',
@@ -94,8 +96,9 @@ class PointCloudEncoder(nn.Module):
                                     dynamic_batching=True,
                                     enable_offloading=offloading)
 
-        self.xo_enc3 = MinimalCrossObjectEncoder(64, 64, norm_layer=norm_layer,
-                                            activation_layer=activation_layer)
+        self.xo_enc3 = MinimalCrossObjectEncoder(64, 64, k = 5,
+                                                 norm_layer=norm_layer,
+                                                 activation_layer=activation_layer)
 
         self.graph_conv4 = GraphConv(64, 64, k=10, reduction='max',
                                     features='local+global',
@@ -104,8 +107,9 @@ class PointCloudEncoder(nn.Module):
                                     dynamic_batching=True,
                                     enable_offloading=offloading)
 
-        self.xo_enc4 = MinimalCrossObjectEncoder(64, 64, norm_layer=norm_layer,
-                                            activation_layer=activation_layer)
+        self.xo_enc4 = MinimalCrossObjectEncoder(64, 64, k = 5,
+                                                 norm_layer=norm_layer,
+                                                 activation_layer=activation_layer)
 
         self.bbox_enc = BboxEncoder(64, norm_layer=norm_layer,
                                     activation_layer=activation_layer,

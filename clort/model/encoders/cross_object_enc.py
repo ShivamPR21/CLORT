@@ -9,7 +9,7 @@ from moduleZoo.graphs import GraphConv, SelfGraphAttentionLinear
 
 class MinimalCrossObjectEncoder(nn.Module):
 
-    def __init__(self, in_dim: int, out_dim: int,
+    def __init__(self, in_dim: int, out_dim: int, k: int,
                  norm_layer: Callable[..., nn.Module] | None = nn.LayerNorm,
                  activation_layer: Callable[..., nn.Module] | None = nn.SELU,
                  use_attention: bool = True) -> None:
@@ -17,7 +17,7 @@ class MinimalCrossObjectEncoder(nn.Module):
         self.in_dim, self.out_dim = in_dim, out_dim
 
         self.gat = SelfGraphAttentionLinear(self.in_dim, None, residual=True, dynamic_batching=True) if use_attention else None
-        self.conv = GraphConv(self.in_dim, self.out_dim, bias=True, k=10,
+        self.conv = GraphConv(self.in_dim, self.out_dim, bias=True, k=k,
                                reduction='max', features='local+global',
                                norm_layer=norm_layer, activation_layer=activation_layer,
                                dynamic_batching=True, enable_offloading=False)
