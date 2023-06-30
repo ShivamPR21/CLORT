@@ -318,7 +318,7 @@ def ArgoCl_collate_fxn(batch:Any):
         track_idxs.append(sample[5])
         cls_idxs.append(sample[6])
         frame_sz.append(sample[7])
-        sample_sz.append(len(sample[7]))
+        sample_sz.append(np.sum(sample[7]))
 
     pcls = torch.cat(pcls, dim=0) if len(pcls) != 0 else []
     pcls_sz = np.concatenate(pcls_sz, axis=0) if len(pcls_sz) != 0 else []

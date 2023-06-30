@@ -1,5 +1,6 @@
 from typing import Callable, List
 
+import numpy as np
 import torch
 import torch.nn as nn
 
@@ -16,6 +17,7 @@ class ContrastiveLoss(nn.Module):
                  separate_tracks: bool = False,
                  static_contrast: bool = False,
                  use_hard_condition: bool = False,
+                 localize_to_horizon: bool = False,
                  hard_condition_proportion: float = 0.5,
                  sim_type: str = "dot", #"dot/diff" #TODO@ShivamPR21 Ad-hoc short term inplace remedy until sim-fxn is implemented
                  sim_fxn: Callable[[torch.Tensor, torch.Tensor], torch.Tensor] = dot_similarity) -> None:
@@ -28,6 +30,7 @@ class ContrastiveLoss(nn.Module):
         self.stc = static_contrast
 
         self.hc, self.hcp = use_hard_condition, hard_condition_proportion
+        self.lcth = localize_to_horizon # Localize to temporal horizon
 
         self.sim_type = sim_type #TODO@ShivamPR21 Ad-hoc short term inplace remedy until sim-fxn is implemented
 
@@ -43,7 +46,21 @@ class ContrastiveLoss(nn.Module):
 
         return loss
 
-    def forward(self, x: torch.Tensor, track_idxs: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, track_idxs: torch.Tensor, y: torch.Tensor,
+                n_tracks: np.ndarray | None = None) -> torch.Tensor:
+        if n_tracks is not None and self.lcth:
+            x = x.split(n_tracks.tolist(), dim=0)
+            track_idxs = track_idxs.split(n_tracks.tolist(), dim=0)
+
+            loss = torch.tensor([0], dtype=torch.float32, device=x.device)
+            for i in range(len(n_tracks)):
+                loss = loss + self.forward_(x[i], track_idxs[i], y)/len(n_tracks)
+
+            return loss
+
+        return self.forward_(x, track_idxs, y)
+
+    def forward_(self, x: torch.Tensor, track_idxs: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         # x -> [n_obj', N]
         # y -> [n_obj, Q, N]
         # print(f'{x.shape = } \t {y.shape = }')
@@ -143,8 +160,8 @@ class ContrastiveLoss(nn.Module):
         if self.separate_tracks:
             loss_ = torch.tensor([0], dtype=torch.float32, device=x.device)
             for num, den, _, _ in loss:
-                loss_ = loss_ + self.loss(num, den)
-            loss = loss_/len(ut_ids)
+                loss_ = loss_ + self.loss(num, den)/len(ut_ids)
+            loss = loss_
         else:
             loss = self.loss(num, den)
 
