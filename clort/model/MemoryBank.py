@@ -2,13 +2,15 @@ from typing import Tuple, Union
 
 import numpy as np
 import torch
+import torch.nn as nn
 
 
-class MemoryBank:
+class MemoryBank(nn.Module):
 
     def __init__(self, n_tracks: int, N: int, Q: int,
                  alpha: Union[np.ndarray, torch.Tensor],
                  eps: float = 1e-9, device: torch.device | str = 'cpu') -> None:
+        super().__init__()
         self.eps = eps
         self.device = device
         self.N, self.Q, self.n_tracks = N, Q, n_tracks
@@ -19,9 +21,10 @@ class MemoryBank:
         if alpha.device != self.device:
             alpha = alpha.to(self.device)
 
-        self.alpha = alpha.reshape((Q, 1))
+        self.alpha = nn.Parameter(alpha.reshape((Q, 1)), requires_grad = False)
 
-        self.memory = torch.zeros((n_tracks, Q, N), dtype=torch.float32, device=self.device)
+        self.memory = nn.Parameter(torch.zeros((n_tracks, Q, N), dtype=torch.float32, device=self.device),
+                                   requires_grad = False)
 
     def reset(self):
         self.memory *= 0.
@@ -58,19 +61,24 @@ class MemoryBank:
     def get_memory(self) -> torch.Tensor:
         return self.memory
 
-class MemoryBankInfer:
+class MemoryBankInfer(nn.Module):
 
     def __init__(self, n_tracks: int, N: int, Q: int, t: int = 3,
                  alpha_threshold: Tuple[float, float] = (0.1, 0.9), beta_threshold: Tuple[float, float] = (0.1, 0.9), device: torch.device | str = 'cpu') -> None:
-        self.n_tracks, self.N, self.Q, self.t, self.alpha_t, self.beta_t = n_tracks, N, Q, t, alpha_threshold, beta_threshold
+        super().__init__()
+        self.n_tracks, self.N, self.Q, self.t, self.alpha_t, self.beta_t = \
+            n_tracks, N, Q, t, alpha_threshold, beta_threshold
 
         self.eps = 1e-9
         self.device = device
 
-        self.beta = torch.zeros((n_tracks, Q), dtype=torch.float32, device=self.device)
-        self.count = torch.zeros((n_tracks, 1), dtype=torch.float32, device=self.device)
+        self.beta = nn.Parameter(torch.zeros((n_tracks, Q), dtype=torch.float32, device=self.device),
+                                 requires_grad = False)
+        self.count = nn.Parameter(torch.zeros((n_tracks, 1), dtype=torch.float32, device=self.device),
+                                  requires_grad = False)
 
-        self.memory = torch.zeros((n_tracks, Q, N), dtype=torch.float32, device=self.device)
+        self.memory = nn.Parameter(torch.zeros((n_tracks, Q, N), dtype=torch.float32, device=self.device),
+                                   requires_grad = False)
 
     def reset(self):
         self.beta *= 0
