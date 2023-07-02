@@ -1,0 +1,9 @@
+info: "MM Encoder : MultiModal Encoder"
+## MV Encoder
+img_features: 256
+## PC Encoder
+pc_features: 128
+## MM Encoder
+mm_features: 256
+## MMC Encoder
+mmc_features: None

@@ -133,4 +133,6 @@ dmypy.json
 
 */scrap.ipynb
 
-*/wandb/
+**/wandb/
+**/outputs/
+**/notebooks/

@@ -1,0 +1,7 @@
+defaults:
+  - model: mv_enc
+  - dataset: argo_mv
+  - loss: all_states
+  - mb: single_center
+  - val_mb: infer
+  - optimizer: optim

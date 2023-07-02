@@ -1,0 +1,9 @@
+info: "MV Encoder : MultiView Encoder"
+## MV Encoder
+img_features: 256
+## PC Encoder
+pc_features: None
+## MM Encoder
+mm_features: None
+## MMC Encoder
+mmc_features: None

@@ -10,7 +10,8 @@ class MultiModalEncoder(nn.Module):
 
     def __init__(self, mv_in_dim = 256, pc_in_dim = 128, out_dim: int = 128,
                  norm_layer: Callable[..., nn.Module] | None = nn.LayerNorm,
-                 activation_layer: Callable[..., nn.Module] | None = nn.SELU) -> None:
+                 activation_layer: Callable[..., nn.Module] | None = nn.SELU,
+                 enable_xo: bool = False) -> None:
         super().__init__()
 
         self.eps = 1e-9

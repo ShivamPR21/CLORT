@@ -1,4 +1,4 @@
-from typing import Callable, Tuple, Type
+from typing import Callable, Tuple
 
 import numpy as np
 import torch
@@ -13,89 +13,103 @@ from moduleZoo.resblocks import (
 )
 from timm import create_model
 
+from . import MinimalCrossObjectEncoder
 
-class SingleViewEncoderDLA34(nn.Module):
 
-    def __init__(self, image_shape: Tuple[int, int] = (224, 224), in_dim:int = 3, out_dim: int = 256,
-                 norm_layer : Callable[..., nn.Module] | None=None) -> None:
-        super().__init__()
-        self.image_shape = image_shape
-        self.in_dim, self.out_dim = in_dim, out_dim
+class CrossViewAttention(SelfGraphAttentionLinear):
 
-        self.dla34 = create_model('dla34', features_only=True, pretrained=True)
+    def __init__(self, in_dim: int, out_dim: int | None = None,
+                 residual: bool = True, dynamic_batching: bool = False,
+                 norm_layer: Callable[..., nn.Module] | None = None,
+                 activation_layer: Callable[..., nn.Module] | None = None):
+        super().__init__(in_dim, out_dim, residual, dynamic_batching)
 
-        self.conv1 = ConvNormActivation2d(64, 64, kernel_size=8, stride=8,
-                                          padding="stride_effective",
-                                          norm_layer=norm_layer, activation_layer=nn.SELU)
+        self.norm_layer = norm_layer() if norm_layer is not None else None
+        self.activation_layer = activation_layer() if activation_layer is not None else None
 
-        self.conv2 = ConvNormActivation2d(128, 128, kernel_size=4, stride=4,
-                                          padding="stride_effective",
-                                          norm_layer=norm_layer, activation_layer=nn.SELU)
+    def forward(self, x: torch.Tensor, n_views: np.ndarray) -> torch.Tensor:
+        sz_arr = [_.numpy().tolist() for _ in torch.arange(0, x.shape[0], dtype=torch.int32).split(n_views.tolist(), dim=0)]
 
-        self.conv3 = ConvNormActivation2d(256, 256, kernel_size=2, stride=2,
-                                        padding="stride_effective",
-                                        norm_layer=norm_layer, activation_layer=nn.SELU)
+        output = torch.zeros((len(sz_arr), 128), dtype=torch.float32, device=x.device)
 
-        self.conv4 = ConvNormActivation2d(512, 512, kernel_size=1, stride=1,
-                                          padding="stride_effective",
-                                          norm_layer = norm_layer, activation_layer=nn.SELU)
+        for i, sz_idxs in enumerate(sz_arr):
+            output[i, :] = x[sz_idxs, :].max(dim=0).values
 
-        self.linear5 = LinearNormActivation(512*2, self.out_dim, bias=True)
+        output = self.norm_layer(output) if self.norm_layer is not None else output
+        output = self.activation_layer(output) if self.activation_layer is not None else output
 
-        self.max_pool = nn.MaxPool2d((7, 7))
+        return output
 
-    def forward(self, x:torch.Tensor) -> torch.Tensor:
-        x_ = self.dla34(x)
-        x = torch.cat([self.conv1(x_[1]), self.conv2(x_[2]), self.conv3(x_[3]), self.conv4(x_[4])], dim=1)
 
-        x = self.linear5(self.max_pool(x).flatten(1))
 
-        return x
-
-class SingleViewEncoder(nn.Module):
+class MultiViewEncoder(nn.Module):
 
     def __init__(self, image_shape: Tuple[int, int] = (224, 224), in_dim:int = 3, out_dim: int = 256,
-                 norm_layer : Callable[..., nn.Module] | None=None) -> None:
+                 norm_2d : Callable[..., nn.Module] | None=None,
+                 norm_1d : Callable[..., nn.Module] | None=None,
+                 enable_xo: bool = False) -> None:
         super().__init__()
+
+        self.eps = 1e-9
 
         self.image_shape = image_shape
         self.in_dim, self.out_dim = in_dim, out_dim
+        self.enable_xo = enable_xo
 
         self.conv1 = ConvNormActivation2d(self.in_dim, 64, kernel_size=5, stride=2,
-                                          norm_layer=norm_layer, activation_layer=nn.SELU)
+                                          norm_layer=norm_2d, activation_layer=nn.SELU)
 
         self.conv2 = ConvNormActivation2d(64, 128, kernel_size=5, stride=2,
-                                          norm_layer=norm_layer, activation_layer=nn.SELU)
+                                          norm_layer=norm_2d, activation_layer=nn.SELU)
 
         self.conv2_proj = ConvNormActivation2d(128, 128, kernel_size=5, stride=5,
                                                bias=False, norm_layer=None, activation_layer=None)
+        self.xv2 = CrossViewAttention(128, 128, residual=True, dynamic_batching=True,
+                                      norm_layer=norm_1d, activation_layer=nn.SELU)
+        self.xo2 = MinimalCrossObjectEncoder(128, 128, k = 10, norm_layer=norm_1d,
+                                             activation_layer=nn.SELU, red_factor=2) if self.enable_xo else None
+
 
         self.res3 = ConvBottleNeckResidualBlock2d(128, 4, 64, kernel_size=3, stride=1,
-                                                  norm_layer=norm_layer, activation_layer=nn.SELU)
+                                                  norm_layer=norm_2d, activation_layer=nn.SELU)
 
         self.res4 = ConvBottleNeckResidualBlock2d(64, 4, 128, kernel_size=3, stride=2,
-                                                  norm_layer=norm_layer, activation_layer=nn.SELU)
+                                                  norm_layer=norm_2d, activation_layer=nn.SELU)
 
         self.res4_proj = ConvNormActivation2d(128, 128, kernel_size=3, stride=2,
-                                               bias=False, norm_layer=None, activation_layer=None)
+                                            bias=False, norm_layer=None, activation_layer=None)
+        self.xv4 = CrossViewAttention(128, 128, residual=True, dynamic_batching=True,
+                                      norm_layer=norm_1d, activation_layer=nn.SELU)
+        self.xo4 = MinimalCrossObjectEncoder(128, 128, k = 10, norm_layer=norm_1d,
+                                            activation_layer=nn.SELU, red_factor=2) if self.enable_xo else None
 
         self.res5 = ConvInvertedResidualBlock2d(128, 2, 256, kernel_size=3, stride=1,
-                                                norm_layer=norm_layer, activation_layer=nn.SELU)
+                                                norm_layer=norm_2d, activation_layer=nn.SELU)
 
         self.res6 = ConvInvertedResidualBlock2d(256, 2, 128, kernel_size=3, stride=2,
-                                                norm_layer=norm_layer, activation_layer=nn.SELU)
+                                                norm_layer=norm_2d, activation_layer=nn.SELU)
 
         self.res6_proj = ConvNormActivation2d(128, 128, kernel_size=3, stride=2,
                                                bias=False, norm_layer=None, activation_layer=None)
+        self.xv6 = CrossViewAttention(128, 128, residual=True, dynamic_batching=True,
+                                      norm_layer=norm_1d, activation_layer=nn.SELU)
+        self.xo6 = MinimalCrossObjectEncoder(128, 128, k = 10, norm_layer=norm_1d,
+                                            activation_layer=nn.SELU, red_factor=2) if self.enable_xo else None
 
         self.res7 = ConvResidualBlock2d(128, 512, kernel_size=3, stride=2,
-                                         norm_layer=norm_layer, activation_layer=nn.SELU)
+                                         norm_layer=norm_2d, activation_layer=nn.SELU)
 
-        self.linear8 = LinearNormActivation(512+128*3, self.out_dim, bias=True)
+        self.xv7 = CrossViewAttention(512, 512, residual=True, dynamic_batching=True,
+                                      norm_layer=norm_1d, activation_layer=nn.SELU)
+        self.xo7 = MinimalCrossObjectEncoder(512, 512, k = 10, norm_layer=norm_1d,
+                                            activation_layer=nn.SELU, red_factor=2) if self.enable_xo else None
+
+        self.linear8 = LinearNormActivation(512+128*3, 128, bias=True, norm_layer=norm_1d, activation_layer=nn.SELU)
+        self.projection_head = LinearNormActivation(128, self.out_dim, bias=True, norm_layer=None, activation_layer=None)
 
         self.max_pool = nn.AdaptiveMaxPool2d((1, 1))
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, n_views: np.ndarray, n_nodes: np.ndarray | None = None) -> torch.Tensor:
         x1 = self.conv1(x)
         x2 = self.conv2(x1)
         x2_p = self.conv2_proj(x2)
@@ -107,62 +121,24 @@ class SingleViewEncoder(nn.Module):
         x6_p = self.res6_proj(x6)
         x7 = self.res7(x6)
 
-        x = torch.cat([self.max_pool(x2_p), self.max_pool(x4_p), self.max_pool(x6_p), self.max_pool(x7)], dim=1).flatten(1)
+        x2_p, x4_p, x6_p, x7 = \
+            self.max_pool(x2_p).flatten(1), self.max_pool(x4_p).flatten(1), \
+            self.max_pool(x6_p).flatten(1), self.max_pool(x7).flatten(1)
+
+        x2_p, x4_p, x6_p, x7 = \
+            self.xv2(x2_p, n_views), self.xv4(x4_p, n_views), \
+                self.xv6(x6_p, n_views), self.xv7(x7, n_views)
+
+        if self.enable_xo and n_nodes is not None:
+            x2_p, x4_p, x6_p, x7 = \
+                self.xo2(x2_p, n_nodes), self.xo4(x4_p, n_nodes), \
+                    self.xo6(x6_p, n_nodes), self.xo7(x7, n_nodes)
+
+        x = torch.cat([x2_p, x4_p, x6_p, x7], dim=1)
         x = self.linear8(x)
 
+        x= self.projection_head(x)
+
+        x = x/(x.norm(dim=1, keepdim=True) + self.eps)
+
         return x
-
-class MultiViewEncoder(nn.Module):
-
-    def __init__(self,
-                 image_shape : Tuple[int, int] = (224, 224), out_dim: int = 256,
-                 norm_2d: Callable[..., nn.Module] | None = None,
-                 norm_1d: Callable[..., nn.Module] | None = None,
-                 sv_backbone: Type[nn.Module] | None = None) -> None:
-        super().__init__()
-
-        self.eps = 1e-9
-        self.image_shape = image_shape
-
-        self.sv_enc1 = SingleViewEncoder(self.image_shape, 3, 512, norm_layer=norm_2d) if sv_backbone is None else sv_backbone
-
-        self.layer_norm1 = nn.LayerNorm(512)
-        self.act1 = nn.SELU()
-
-        self.max_pool = nn.AdaptiveMaxPool2d(output_size=(1, 1))
-        self.sv_enc2 = LinearNormActivation(512, 256, norm_layer=norm_1d, activation_layer=nn.SELU)
-        self.sv_enc3 = LinearNormActivation(256, 128, activation_layer=nn.SELU)
-
-        self.gat = SelfGraphAttentionLinear(128, None, residual=True, dynamic_batching=True)
-        self.gat_act = nn.SELU()
-        self.projection_head = LinearNormActivation(128, out_dim, activation_layer=None)
-
-    def forward(self, x : torch.Tensor, n_views: np.ndarray) -> torch.Tensor:
-        # x -> [N, 3, W, H]
-        # n_views -> [nv....]
-
-        # Atomic encodings
-        # x = self.max_pool(self.sv_enc1(x)[-1]).flatten(start_dim=1) # [N, 512]
-        x = self.sv_enc1(x) # [N, 512, n, n] or [N, 512]
-
-        if not x.ndim == 2:
-            x = self.max_pool(x).flatten(start_dim=1) # [N, 512]
-
-        x = self.act1(self.layer_norm1(x))
-
-        x = self.sv_enc3(self.sv_enc2(x)) # [N, 128]
-
-        x = self.gat_act(self.gat(x, n_views)) # [N, 128]
-
-        sz_arr = [_.numpy().tolist() for _ in torch.arange(0, x.shape[0], dtype=torch.int32).split(n_views.tolist(), dim=0)]
-
-        output = torch.zeros((len(sz_arr), 128), dtype=torch.float32, device=x.device)
-
-        for i, sz_idxs in enumerate(sz_arr):
-            output[i, :] = x[sz_idxs, :].max(dim=0).values
-
-        output = self.projection_head(output)
-
-        output = output/(output.norm(dim=1, keepdim=True) + self.eps)
-
-        return output

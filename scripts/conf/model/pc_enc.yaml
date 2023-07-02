@@ -1,0 +1,9 @@
+info: "PC Encoder : PointCloud Encoder"
+## MV Encoder
+img_features: None
+## PC Encoder
+pc_features: 256
+## MM Encoder
+mm_features: None
+## MMC Encoder
+mmc_features: None

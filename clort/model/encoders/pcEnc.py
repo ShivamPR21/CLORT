@@ -15,7 +15,8 @@ class BboxEncoder(nn.Module):
     def __init__(self, out_dim: int = 64,
                  norm_layer: Callable[..., nn.Module] | None = nn.LayerNorm,
                  activation_layer: Callable[..., nn.Module] | None = nn.SELU,
-                 offloading: bool = True) -> None:
+                 offloading: bool = True,
+                 enable_xo: bool = False) -> None:
         super().__init__()
 
         self.graph_conv1 = GraphConv(3, 64, k=4, reduction='max',
@@ -27,7 +28,7 @@ class BboxEncoder(nn.Module):
 
         self.xo_enc1 = MinimalCrossObjectEncoder(64, 64, k = 5,
                                                 norm_layer=norm_layer,
-                                                activation_layer=activation_layer)
+                                                activation_layer=activation_layer) if enable_xo else nn.Identity()
 
         self.graph_conv2 = GraphConv(64, 64, k=4, reduction='max',
                                     features='local+global',
@@ -38,7 +39,7 @@ class BboxEncoder(nn.Module):
 
         self.xo_enc2 = MinimalCrossObjectEncoder(64, 64, k = 5,
                                                 norm_layer=norm_layer,
-                                                activation_layer=activation_layer)
+                                                activation_layer=activation_layer) if enable_xo else nn.Identity()
 
         self.projection_head = LinearNormActivation(64*2, out_dim, bias=True,
                                                     norm_layer=norm_layer, activation_layer=activation_layer)
@@ -63,7 +64,7 @@ class PointCloudEncoder(nn.Module):
     def __init__(self, out_dims : int = 128, bbox_aug : bool = True,
                  norm_layer: Callable[..., nn.Module] | None = nn.LayerNorm,
                  activation_layer: Callable[..., nn.Module] | None = nn.SELU,
-                 offloading = True) -> None:
+                 offloading: bool = True, enable_xo: bool = False) -> None:
         super().__init__()
 
         self.eps = 1e-9
@@ -76,7 +77,7 @@ class PointCloudEncoder(nn.Module):
 
         self.xo_enc1 = MinimalCrossObjectEncoder(64, 64, k = 5,
                                                  norm_layer=norm_layer,
-                                                 activation_layer=activation_layer)
+                                                 activation_layer=activation_layer) if enable_xo else nn.Identity()
 
         self.graph_conv2 = GraphConv(64, 64, k=10, reduction='max',
                                     features='local+global',
@@ -87,7 +88,7 @@ class PointCloudEncoder(nn.Module):
 
         self.xo_enc2 = MinimalCrossObjectEncoder(64, 64, k = 5,
                                                  norm_layer=norm_layer,
-                                                 activation_layer=activation_layer)
+                                                 activation_layer=activation_layer) if enable_xo else nn.Identity()
 
         self.graph_conv3 = GraphConv(64, 64, k=10, reduction='max',
                                     features='local+global',
@@ -98,7 +99,7 @@ class PointCloudEncoder(nn.Module):
 
         self.xo_enc3 = MinimalCrossObjectEncoder(64, 64, k = 5,
                                                  norm_layer=norm_layer,
-                                                 activation_layer=activation_layer)
+                                                 activation_layer=activation_layer) if enable_xo else nn.Identity()
 
         self.graph_conv4 = GraphConv(64, 64, k=10, reduction='max',
                                     features='local+global',
@@ -109,11 +110,12 @@ class PointCloudEncoder(nn.Module):
 
         self.xo_enc4 = MinimalCrossObjectEncoder(64, 64, k = 5,
                                                  norm_layer=norm_layer,
-                                                 activation_layer=activation_layer)
+                                                 activation_layer=activation_layer) if enable_xo else nn.Identity()
 
         self.bbox_enc = BboxEncoder(64, norm_layer=norm_layer,
                                     activation_layer=activation_layer,
-                                    offloading=offloading) if bbox_aug else None
+                                    offloading=offloading,
+                                    enable_xo=enable_xo) if bbox_aug else None
 
         self.projection_head = LinearNormActivation(64*4 + (64 if bbox_aug else 0), out_dims, bias=True, activation_layer=None)
 

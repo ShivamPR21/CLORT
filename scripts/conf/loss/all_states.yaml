@@ -1,0 +1,8 @@
+# Loss Function Information
+temperature: 0.05
+static_contrast: True
+soft_condition: True
+global_contrast: True
+separate_tracks: True
+global_horizon: True
+sim_type: "dot"
