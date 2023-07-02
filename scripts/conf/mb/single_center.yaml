@@ -1,3 +1,5 @@
 # MemoryBank Config
 n_track_centers: 1
 track_center_momentum: [0.3]
+device: 'cpu'
+reset: False

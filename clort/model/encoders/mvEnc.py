@@ -11,7 +11,6 @@ from moduleZoo.resblocks import (
     ConvInvertedResidualBlock2d,
     ConvResidualBlock2d,
 )
-from timm import create_model
 
 from . import MinimalCrossObjectEncoder
 
@@ -47,6 +46,7 @@ class MultiViewEncoder(nn.Module):
     def __init__(self, image_shape: Tuple[int, int] = (224, 224), in_dim:int = 3, out_dim: int = 256,
                  norm_2d : Callable[..., nn.Module] | None=None,
                  norm_1d : Callable[..., nn.Module] | None=None,
+                 activation_layer: Callable[..., nn.Module] | None=None,
                  enable_xo: bool = False) -> None:
         super().__init__()
 
@@ -57,54 +57,54 @@ class MultiViewEncoder(nn.Module):
         self.enable_xo = enable_xo
 
         self.conv1 = ConvNormActivation2d(self.in_dim, 64, kernel_size=5, stride=2,
-                                          norm_layer=norm_2d, activation_layer=nn.SELU)
+                                          norm_layer=norm_2d, activation_layer=activation_layer)
 
         self.conv2 = ConvNormActivation2d(64, 128, kernel_size=5, stride=2,
-                                          norm_layer=norm_2d, activation_layer=nn.SELU)
+                                          norm_layer=norm_2d, activation_layer=activation_layer)
 
         self.conv2_proj = ConvNormActivation2d(128, 128, kernel_size=5, stride=5,
                                                bias=False, norm_layer=None, activation_layer=None)
         self.xv2 = CrossViewAttention(128, 128, residual=True, dynamic_batching=True,
-                                      norm_layer=norm_1d, activation_layer=nn.SELU)
+                                      norm_layer=norm_1d, activation_layer=activation_layer)
         self.xo2 = MinimalCrossObjectEncoder(128, 128, k = 10, norm_layer=norm_1d,
-                                             activation_layer=nn.SELU, red_factor=2) if self.enable_xo else None
+                                             activation_layer=activation_layer, red_factor=2) if self.enable_xo else None
 
 
         self.res3 = ConvBottleNeckResidualBlock2d(128, 4, 64, kernel_size=3, stride=1,
-                                                  norm_layer=norm_2d, activation_layer=nn.SELU)
+                                                  norm_layer=norm_2d, activation_layer=activation_layer)
 
         self.res4 = ConvBottleNeckResidualBlock2d(64, 4, 128, kernel_size=3, stride=2,
-                                                  norm_layer=norm_2d, activation_layer=nn.SELU)
+                                                  norm_layer=norm_2d, activation_layer=activation_layer)
 
         self.res4_proj = ConvNormActivation2d(128, 128, kernel_size=3, stride=2,
                                             bias=False, norm_layer=None, activation_layer=None)
         self.xv4 = CrossViewAttention(128, 128, residual=True, dynamic_batching=True,
-                                      norm_layer=norm_1d, activation_layer=nn.SELU)
+                                      norm_layer=norm_1d, activation_layer=activation_layer)
         self.xo4 = MinimalCrossObjectEncoder(128, 128, k = 10, norm_layer=norm_1d,
-                                            activation_layer=nn.SELU, red_factor=2) if self.enable_xo else None
+                                            activation_layer=activation_layer, red_factor=2) if self.enable_xo else None
 
         self.res5 = ConvInvertedResidualBlock2d(128, 2, 256, kernel_size=3, stride=1,
-                                                norm_layer=norm_2d, activation_layer=nn.SELU)
+                                                norm_layer=norm_2d, activation_layer=activation_layer)
 
         self.res6 = ConvInvertedResidualBlock2d(256, 2, 128, kernel_size=3, stride=2,
-                                                norm_layer=norm_2d, activation_layer=nn.SELU)
+                                                norm_layer=norm_2d, activation_layer=activation_layer)
 
         self.res6_proj = ConvNormActivation2d(128, 128, kernel_size=3, stride=2,
                                                bias=False, norm_layer=None, activation_layer=None)
         self.xv6 = CrossViewAttention(128, 128, residual=True, dynamic_batching=True,
-                                      norm_layer=norm_1d, activation_layer=nn.SELU)
+                                      norm_layer=norm_1d, activation_layer=activation_layer)
         self.xo6 = MinimalCrossObjectEncoder(128, 128, k = 10, norm_layer=norm_1d,
-                                            activation_layer=nn.SELU, red_factor=2) if self.enable_xo else None
+                                            activation_layer=activation_layer, red_factor=2) if self.enable_xo else None
 
         self.res7 = ConvResidualBlock2d(128, 512, kernel_size=3, stride=2,
-                                         norm_layer=norm_2d, activation_layer=nn.SELU)
+                                         norm_layer=norm_2d, activation_layer=activation_layer)
 
         self.xv7 = CrossViewAttention(512, 512, residual=True, dynamic_batching=True,
-                                      norm_layer=norm_1d, activation_layer=nn.SELU)
+                                      norm_layer=norm_1d, activation_layer=activation_layer)
         self.xo7 = MinimalCrossObjectEncoder(512, 512, k = 10, norm_layer=norm_1d,
-                                            activation_layer=nn.SELU, red_factor=2) if self.enable_xo else None
+                                            activation_layer=activation_layer, red_factor=2) if self.enable_xo else None
 
-        self.linear8 = LinearNormActivation(512+128*3, 128, bias=True, norm_layer=norm_1d, activation_layer=nn.SELU)
+        self.linear8 = LinearNormActivation(512+128*3, 128, bias=True, norm_layer=norm_1d, activation_layer=activation_layer)
         self.projection_head = LinearNormActivation(128, self.out_dim, bias=True, norm_layer=None, activation_layer=None)
 
         self.max_pool = nn.AdaptiveMaxPool2d((1, 1))
@@ -130,6 +130,7 @@ class MultiViewEncoder(nn.Module):
                 self.xv6(x6_p, n_views), self.xv7(x7, n_views)
 
         if self.enable_xo and n_nodes is not None:
+            assert(self.xo2 is not None and self.xo4 is not None and self.xo6 is not None and self.xo7 is not None)
             x2_p, x4_p, x6_p, x7 = \
                 self.xo2(x2_p, n_nodes), self.xo4(x4_p, n_nodes), \
                     self.xo6(x6_p, n_nodes), self.xo7(x7, n_nodes)

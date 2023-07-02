@@ -1,4 +1,4 @@
-from typing import Callable, List
+from typing import Callable, List, Tuple
 
 import numpy as np
 import torch
@@ -13,24 +13,24 @@ class ContrastiveLoss(nn.Module):
 
     def __init__(self,
                  temp: float = 0.3,
-                 local_contrast: bool = True,
-                 separate_tracks: bool = False,
-                 static_contrast: bool = False,
-                 use_hard_condition: bool = False,
-                 localize_to_horizon: bool = False,
+                 global_contrast: bool = True,
+                 separate_tracks: bool = True,
+                 static_contrast: bool = True,
+                 soft_condition: bool = True,
+                 global_horizon: bool = True,
                  hard_condition_proportion: float = 0.5,
                  sim_type: str = "dot", #"dot/diff" #TODO@ShivamPR21 Ad-hoc short term inplace remedy until sim-fxn is implemented
                  sim_fxn: Callable[[torch.Tensor, torch.Tensor], torch.Tensor] = dot_similarity) -> None:
         super().__init__()
 
         self.temp = temp
-        self.local_contrast = local_contrast
+        self.global_contrast = global_contrast
         self.separate_tracks = separate_tracks
 
         self.stc = static_contrast
 
-        self.hc, self.hcp = use_hard_condition, hard_condition_proportion
-        self.lcth = localize_to_horizon # Localize to temporal horizon
+        self.sc, self.hcp = soft_condition, hard_condition_proportion
+        self.glh = global_horizon # Localize to temporal horizon
 
         self.sim_type = sim_type #TODO@ShivamPR21 Ad-hoc short term inplace remedy until sim-fxn is implemented
 
@@ -39,7 +39,7 @@ class ContrastiveLoss(nn.Module):
     def loss(self, num:torch.Tensor, den:torch.Tensor) -> torch.Tensor:
         loss : torch.Tensor | None = None
 
-        if not self.hc:
+        if self.sc:
             loss = -(num/(den+num)).log()
         else:
             loss = (self.hcp*num + (den+num).log())/(self.hcp+1.)
@@ -48,7 +48,7 @@ class ContrastiveLoss(nn.Module):
 
     def forward(self, x: torch.Tensor, track_idxs: torch.Tensor, y: torch.Tensor,
                 n_tracks: np.ndarray | None = None) -> torch.Tensor:
-        if n_tracks is not None and self.lcth:
+        if n_tracks is not None and not self.glh:
             loss = torch.tensor([0], dtype=torch.float32, device=x.device)
 
             x = x.split(n_tracks.tolist(), dim=0)
@@ -73,25 +73,25 @@ class ContrastiveLoss(nn.Module):
 
         y_idxs : torch.Tensor | None = None
 
-        if self.local_contrast:
+        if self.global_contrast:
+            n, Q, _ = y.size()
+            y = y.flatten(0, 1)
+
+            y_idxs = torch.arange(n, dtype=torch.int32).repeat(Q)
+        else:
             y = y[ut_ids, :, :]
 
             _, Q, _ = y.size()
             y = y.flatten(0, 1)
 
             y_idxs = ut_ids.repeat(Q)
-        else:
-            n, Q, _ = y.size()
-            y = y.flatten(0, 1)
-
-            y_idxs = torch.arange(n, dtype=torch.int32).repeat(Q)
 
         num, den = torch.zeros(1, dtype=torch.float32, device=x.device), torch.zeros(1, dtype=torch.float32, device=x.device)
         n_pos, n_neg = \
             torch.tensor([0], dtype=torch.float32, device=x.device, requires_grad=False),\
                   torch.tensor([0], dtype=torch.float32, device=x.device, requires_grad=False)
 
-        loss: torch.Tensor | List[List[torch.Tensor]] | None = [] if self.separate_tracks else None
+        loss: torch.Tensor | List[Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]] | None = [] if self.separate_tracks else None
 
         for uid in ut_ids:
             x_map = track_idxs == uid
@@ -102,7 +102,7 @@ class ContrastiveLoss(nn.Module):
 
             x_pos, y_pos = x_pos.unsqueeze(dim=1), y_pos.unsqueeze(dim=0)
 
-            if not self.hc:
+            if self.sc:
                 if self.sim_type == "dot":
                     num = num + ((x_pos * y_pos).sum(dim=-1)/self.temp).exp().sum()
                 elif self.sim_type == "diff":
@@ -117,7 +117,7 @@ class ContrastiveLoss(nn.Module):
 
             if self.stc:
                 tmp = 0
-                if not self.hc:
+                if self.sc:
                     if self.sim_type == "dot":
                         tmp = ((x_pos * x_pos.transpose(0, 1)).sum(dim=-1)/self.temp).exp()
                     elif self.sim_type == "diff":
@@ -128,7 +128,7 @@ class ContrastiveLoss(nn.Module):
                     tmp = ((x_pos - x_pos.transpose(0, 1)).norm(dim=-1))
 
                 tmp = tmp * (1.0 - torch.eye(tmp.shape[0], dtype=torch.float32, device=x.device))
-                num = num + (tmp.sum()/2. if not self.hc else tmp.mean()) # Hard constraint numerator is added to
+                num = num + (tmp.sum()/2. if self.sc else tmp.mean()) # Hard constraint numerator is added to
                                                                 # loss thus needs to mean instead of sum
                 n_pos += (x_pos.shape[0]*(x_pos.shape[0] - 1)/2.)
 
@@ -155,10 +155,15 @@ class ContrastiveLoss(nn.Module):
                 n_neg += x_pos.shape[0] * x_neg.shape[0]
 
             if self.separate_tracks:
-                loss.append([num, den, n_pos, n_neg])
-                n_pos, n_neg, num, den = 0, 0, 0, 0
+                assert(isinstance(loss, list))
+                loss.append((num, den, n_pos, n_neg))
+                n_pos *= 0.
+                n_neg *= 0.
+                num *= 0.
+                den *= 0.
 
         if self.separate_tracks:
+            assert(isinstance(loss, list))
             loss_ = torch.tensor([0], dtype=torch.float32, device=x.device)
             for num, den, _, _ in loss:
                 loss_ = loss_ + self.loss(num, den)/len(ut_ids)

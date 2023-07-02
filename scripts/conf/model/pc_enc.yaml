@@ -1,9 +1,18 @@
 info: "PC Encoder : PointCloud Encoder"
 ## MV Encoder
 img_features: None
+mv_xo: False
 ## PC Encoder
-pc_features: 256
+pc_features: 128
+pc_xo: False
 ## MM Encoder
 mm_features: None
+mm_xo: False
 ## MMC Encoder
 mmc_features: None
+
+device: 'cuda'
+
+restore: False
+run_path: None
+model_file: None

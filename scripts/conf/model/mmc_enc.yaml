@@ -1,9 +1,18 @@
 info: "MMC Encoder : MultiModal Context Encoder"
 ## MV Encoder
 img_features: 256
+mv_xo: False
 ## PC Encoder
 pc_features: 128
+pc_xo: False
 ## MM Encoder
 mm_features: 256
+mm_xo: False
 ## MMC Encoder
 mmc_features: 256
+
+device: 'cuda'
+
+restore: False
+run_path: None
+model_file: None

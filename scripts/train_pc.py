@@ -4,11 +4,11 @@ from typing import List
 import numpy as np
 import torch
 import torch.nn as nn
-import wandb
 from torch.utils.data import DataLoader
 from torchvision.transforms.transforms import RandomApply
 from tqdm import tqdm
 
+import wandb
 from clort import ArgoCL, ArgoCl_collate_fxn
 from clort.model import (
     ContrastiveLoss,
@@ -226,7 +226,7 @@ def main():
                     alpha=torch.tensor(tcuf, dtype=torch.float32, device=memory_device),
                     device=memory_device)
 
-    cl = ContrastiveLoss(temp=temp, local_contrast=local_cont,
+    cl = ContrastiveLoss(temp=temp, global_contrast=local_cont,
                         separate_tracks=sep_tracks, static_contrast=static_contrast,
                         use_hard_condition=hard_cond, localize_to_horizon=hrz_loc, sim_type=sim_type)
 
@@ -239,7 +239,7 @@ def main():
                             alpha=torch.tensor(tcuf, dtype=torch.float32, device=memory_device),
                             device=memory_device)
 
-    cl_infer = ContrastiveLoss(temp=temp, local_contrast=True,
+    cl_infer = ContrastiveLoss(temp=temp, global_contrast=True,
                                separate_tracks=sep_tracks, static_contrast=True,
                                use_hard_condition=hard_cond, localize_to_horizon=hrz_loc, sim_type=sim_type)
 

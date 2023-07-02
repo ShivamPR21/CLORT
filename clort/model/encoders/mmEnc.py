@@ -1,9 +1,12 @@
 from typing import Callable
 
+import numpy as np
 import torch
 import torch.nn as nn
 from moduleZoo.attention import SelfAttentionLinear
 from moduleZoo.dense import LinearNormActivation
+
+from . import MinimalCrossObjectEncoder
 
 
 class MultiModalEncoder(nn.Module):
@@ -15,6 +18,7 @@ class MultiModalEncoder(nn.Module):
         super().__init__()
 
         self.eps = 1e-9
+        self.enable_xo = enable_xo
 
         self.gat_mv1 = SelfAttentionLinear(mv_in_dim, 128,
                                             residual=True)
@@ -26,11 +30,14 @@ class MultiModalEncoder(nn.Module):
         self.combined_gat = SelfAttentionLinear(128, 128,
                                                 residual=True)
 
-        self.projection_head = LinearNormActivation(128, out_dim, bias=True,
-                                                    norm_layer=norm_layer,
-                                                    activation_layer=activation_layer)
+        self.xo_gat = MinimalCrossObjectEncoder(128, 128, k=10,
+                                                norm_layer=norm_layer, activation_layer=activation_layer) if self.enable_xo else None
 
-    def forward(self, mv_enc: torch.Tensor, pc_enc: torch.Tensor) -> torch.Tensor:
+        self.projection_head = LinearNormActivation(128, out_dim, bias=True,
+                                                    norm_layer=None,
+                                                    activation_layer=None)
+
+    def forward(self, mv_enc: torch.Tensor, pc_enc: torch.Tensor, n_nodes: np.ndarray | None = None) -> torch.Tensor:
         # mv_enc -> [n_obj, N_mv]
         # pc_enc -> [n_obj, N_pc]
 
@@ -43,6 +50,8 @@ class MultiModalEncoder(nn.Module):
         res_pc = self.gat_pc1(pc_enc, q_pc.repeat(1, 2, 1), k_pc.repeat(1, 2, 1), torch.cat([v_mv, v_pc], dim=1)).squeeze(dim=1).max(dim=1, keepdims=True).values
 
         res = self.combined_gat(torch.cat([res_mv, res_pc], dim=1)).squeeze(dim=1).max(dim=1).values
+
+        res = self.xo_gat(res, n_nodes) if (self.xo_gat is not None and n_nodes is not None) else res
 
         res = self.projection_head(res)
 

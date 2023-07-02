@@ -1,2 +1,3 @@
 # MemoryBank Config
-val_mb: "Infer" # Train
+mb: "Infer" # Train
+reset: True
