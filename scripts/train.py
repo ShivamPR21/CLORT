@@ -11,7 +11,7 @@ from torchvision.transforms.transforms import ColorJitter, RandomApply
 from tqdm import tqdm
 
 import wandb
-from clort import ArgoCL, ArgoCl_collate_fxn
+from clort import ArgoCL, ArgoCl_collate_fxn, ArgoCLSampler
 from clort.model import (
     ContrastiveLoss,
     CrossObjectEncoder,
@@ -217,7 +217,7 @@ def main(cfg: DictConfig):
                             max_objects=cfg.dataset.max_objects,
                             distance_threshold=None,
                             splits=cfg.dataset.train_splits,
-                            img_size=(224, 224),
+                            img_size=tuple(cfg.dataset.img_shape),
                             point_cloud_size=cfg.dataset.pcl_quant,
                             in_global_frame=cfg.dataset.global_frame,
                             pivot_to_first_frame=cfg.dataset.pivot_to_first_frame,
@@ -233,19 +233,22 @@ def main(cfg: DictConfig):
                         temporal_horizon=cfg.dataset.temporal_horizon,
                         temporal_overlap=cfg.dataset.temporal_overlap,
                         distance_threshold=None,
-                        splits=cfg.dataset.val_splits, img_size=(224, 224),
+                        splits=cfg.dataset.val_splits,
+                        img_size=tuple(cfg.dataset.img_shape),
                         point_cloud_size=cfg.dataset.pcl_quant,
                         in_global_frame=cfg.dataset.global_frame,
                         pivot_to_first_frame=cfg.dataset.pivot_to_first_frame,
                         image=cfg.dataset.imgs, pcl=cfg.dataset.pcl, bbox=cfg.dataset.bbox_aug)
 
-    train_dl = DataLoader(train_dataset, cfg.dataset.batch, shuffle=cfg.dataset.shuffle,
-                            collate_fn=ArgoCl_collate_fxn, num_workers=cfg.dataset.workers,
-                            prefetch_factor=cfg.dataset.prefetch)
+    train_dl = DataLoader(train_dataset, cfg.dataset.batch, shuffle=False,
+                          sampler=ArgoCLSampler(train_dataset, cfg.dataset.shuffle),
+                          collate_fn=ArgoCl_collate_fxn, num_workers=cfg.dataset.workers,
+                          prefetch_factor=cfg.dataset.prefetch)
 
     val_dl = DataLoader(val_dataset, cfg.dataset.batch, shuffle=False,
-                            collate_fn=ArgoCl_collate_fxn, num_workers=cfg.dataset.workers,
-                            prefetch_factor=cfg.dataset.prefetch)
+                        sampler=ArgoCLSampler(val_dataset, False),
+                        collate_fn=ArgoCl_collate_fxn, num_workers=cfg.dataset.workers,
+                        prefetch_factor=cfg.dataset.prefetch)
 
     print(f'{len(train_dl) = } \t {len(val_dl) = }')
 

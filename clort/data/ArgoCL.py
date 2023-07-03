@@ -1,12 +1,12 @@
 import os
-from typing import Any, Dict, List, Tuple, Type
+from typing import Any, Dict, Iterator, List, Optional, Sized, Tuple, Type
 
 import h5py
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, Sampler
 
 
 class ArgoCL(Dataset):
@@ -275,7 +275,7 @@ class ArgoCL(Dataset):
             #     imgs.unsqueeze(dim=0).split(split_size=3, dim=1)   # ([1, 3, 250, 250]...)
             #     , dim=0)                                           # [_//3, 3, 250, 250] # dimension 1 is number of views which
             #                                                                                                 # can be extracted with $imgs_sz$ split
-            imgs = F.interpolate(imgs, self.img_size, mode='bilinear')
+            imgs = F.interpolate(imgs, self.img_size, mode='nearest')
             if self.vt is not None:
                 imgs = self.vt(imgs) # type: ignore
 
@@ -332,3 +332,32 @@ def ArgoCl_collate_fxn(batch:Any):
     sample_sz = np.array(sample_sz, dtype=int)
 
     return pcls, pcls_sz, imgs, imgs_sz, bboxs, track_idxs, cls_idxs, frame_sz, sample_sz
+
+class ArgoCLSampler(Sampler):
+
+    def __init__(self, data_source: ArgoCL, shuffle: bool = False) -> None:
+        super().__init__(None)
+
+        self.n = data_source.n
+        self.N = len(data_source)
+
+        self._idxs = np.zeros((np.max(self.n), len(self.n)), dtype=int)
+
+        prev_len = 0
+        for i, n in enumerate(self.n):
+            idxs = np.arange(n, dtype=int)
+            np.random.shuffle(idxs) if shuffle else None
+
+            if n < self._idxs.shape[0]:
+                idxs = np.concatenate((idxs, np.random.choice(idxs, size=self._idxs.shape[0]-n)))
+
+            self._idxs[:, i] = idxs + prev_len
+            prev_len += n
+
+        self._idxs = self._idxs.flatten(order='C').tolist()
+
+    def __iter__(self) -> Iterator:
+        return iter(self._idxs)
+
+    def __len__(self) -> int:
+        return len(self._idxs)
