@@ -148,15 +148,12 @@ class ArgoCL(Dataset):
                 dets.append(k)
 
         n_det = len(dets)
-        idxs_ = np.arange(n_det)
+        # idxs_ = np.arange(n_det)
 
         if self.max_objects is not None and n_det > self.max_objects:
-            idxs_ = np.random.choice(n_det, size=self.max_objects, replace=False)
+            dets = np.random.choice(dets, size=self.max_objects, replace=False)
 
-        for det_idx in idxs_:
-            det = str(dets[det_idx])
-            if not det.startswith('det'):
-                continue
+        for det in dets:
 
             bbox = np.asanyarray(frame_log[f'{det}/bbox'], dtype=np.float32) if self.dt is not None or self.bx else None
 
