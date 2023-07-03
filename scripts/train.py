@@ -107,6 +107,9 @@ def train(epoch, enc: CLModel, train_dl, optimizer, criterion, mem_bank, log_ste
 
     # Training loop
     for itr, (pcls, pcls_sz, imgs, imgs_sz, bboxs, track_idxs, _cls_idxs, frame_sz, n_tracks) in (t_bar := tqdm(enumerate(train_dl), total=len(train_dl))):
+        if len(track_idxs) == 0:
+            continue
+
         optimizer.zero_grad()
 
         pcls = pcls.to(model_device) if isinstance(pcls, torch.Tensor) else pcls
@@ -162,6 +165,8 @@ def val(epoch, enc, val_dl, criterion, mem_bank, log_step=100, wb = True, model_
     # Validation loop
     with torch.no_grad():
         for itr, (pcls, pcls_sz, imgs, imgs_sz, bboxs, track_idxs, _cls_idxs, frame_sz, n_tracks) in (v_bar := tqdm(enumerate(val_dl), total=len(val_dl))):
+            if len(track_idxs) == 0:
+                continue
 
             pcls = pcls.to(model_device) if isinstance(pcls, torch.Tensor) else pcls
             imgs = imgs.to(model_device) if isinstance(imgs, torch.Tensor) else imgs
@@ -215,7 +220,8 @@ def main(cfg: DictConfig):
                            temporal_horizon=cfg.dataset.temporal_horizon,
                             temporal_overlap=cfg.dataset.temporal_overlap,
                             max_objects=cfg.dataset.max_objects,
-                            distance_threshold=None,
+                            target_cls=cfg.dataset.target_cls,
+                            distance_threshold=cfg.dataset.distance_threshold,
                             splits=cfg.dataset.train_splits,
                             img_size=tuple(cfg.dataset.img_shape),
                             point_cloud_size=cfg.dataset.pcl_quant,
@@ -232,7 +238,9 @@ def main(cfg: DictConfig):
     val_dataset = ArgoCL(cfg.dataset.root,
                         temporal_horizon=cfg.dataset.temporal_horizon,
                         temporal_overlap=cfg.dataset.temporal_overlap,
-                        distance_threshold=None,
+                        max_objects=None,
+                        target_cls=cfg.dataset.target_cls,
+                        distance_threshold=cfg.dataset.distance_threshold,
                         splits=cfg.dataset.val_splits,
                         img_size=tuple(cfg.dataset.img_shape),
                         point_cloud_size=cfg.dataset.pcl_quant,

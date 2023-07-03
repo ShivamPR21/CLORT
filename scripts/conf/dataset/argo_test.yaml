@@ -3,6 +3,8 @@ root: "/home/lidar-workstation/CLORT/ArgoCL"
 train_splits: ["train1"]
 val_splits: ["val"]
 max_objects: null
+target_cls: null
+distance_threshold: null
 temporal_horizon: 2
 temporal_overlap: 0
 bbox_aug: False

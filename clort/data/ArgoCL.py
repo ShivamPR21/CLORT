@@ -15,6 +15,7 @@ class ArgoCL(Dataset):
                  temporal_horizon: int = 8,
                  temporal_overlap: int = 4,
                  max_objects: int | None = None,
+                 target_cls: List[str] | None = None,
                  # trunk-ignore(ruff/B006)
                  splits: List[str] = ['train1', 'train2', 'train3', 'train4'],
                  image : bool = True, pcl : bool = True, bbox : bool = True,
@@ -43,6 +44,8 @@ class ArgoCL(Dataset):
         self.pvff = pivot_to_first_frame
         self.vt = vision_transform
         self.pcl_tr = pcl_transform
+        self.obj_cls : List[str] = []
+        self.tgt_cls = target_cls
 
         # Get all log files
         self.log_files: List[h5py.File | h5py.Group] = []
@@ -63,8 +66,6 @@ class ArgoCL(Dataset):
                 })
             self.n_tracks += len(tracks_in_log)
 
-        self.obj_cls : List[str] = []
-
         # All frames and corresponding logs
         self.frames : Dict[str, List[str]] = {}
         self.sorted_logs = []
@@ -80,8 +81,7 @@ class ArgoCL(Dataset):
     #         f.parent.close()
     #     print("All files are closed and destructor called.")
 
-    @staticmethod
-    def list_all_tracks_in_log(log: h5py.Group) -> List[str]:
+    def list_all_tracks_in_log(self, log: h5py.Group) -> List[str]:
 
         tracks : List[str] = []
 
@@ -93,8 +93,9 @@ class ArgoCL(Dataset):
                     continue
 
                 track_id = np.asanyarray(log[f'{log_id}/{frame}/{in_frame_key}/track_id'], dtype=str).item()
+                obj_cls = np.asanyarray(log[f'{log_id}/{frame}/{in_frame_key}/cls'], dtype=str).item()
 
-                if track_id not in tracks:
+                if track_id not in tracks and (self.tgt_cls is None or obj_cls in self.tgt_cls):
                     tracks.append(track_id)
 
         return tracks
@@ -154,7 +155,6 @@ class ArgoCL(Dataset):
             dets = np.random.choice(dets, size=self.max_objects, replace=False)
 
         for det in dets:
-
             bbox = np.asanyarray(frame_log[f'{det}/bbox'], dtype=np.float32) if self.dt is not None or self.bx else None
 
             if self.dt is not None:
@@ -169,6 +169,21 @@ class ArgoCL(Dataset):
                 'track_idx' : -1,
                 'cls_idx' : -1,
             }
+
+            obj_cls = np.asanyarray(frame_log[f'{det}/cls'], dtype=str).item()
+            if self.tgt_cls is not None and obj_cls not in self.tgt_cls:
+                continue
+
+            cls_idx = -1
+            try:
+                cls_idx = self.obj_cls.index(obj_cls)
+            except ValueError:
+                self.obj_cls.append(obj_cls)
+                cls_idx = len(self.obj_cls)-1
+
+            det_data.update(
+                {'cls_idx' : cls_idx}
+            )
 
             if pc:
                 point_cloud = self.sample_point_cloud(np.asanyarray(frame_log[f'{det}/pcl'], dtype=np.float32))
@@ -199,18 +214,6 @@ class ArgoCL(Dataset):
             det_data.update(
                 {'track_idx' : self.tracks[log_id][track_id]}
                          )
-
-            obj_cls = np.asanyarray(frame_log[f'{det}/cls'], dtype=str).item()
-            cls_idx = -1
-            try:
-                cls_idx = self.obj_cls.index(obj_cls)
-            except ValueError:
-                self.obj_cls.append(obj_cls)
-                cls_idx = len(self.obj_cls)-1
-
-            det_data.update(
-                {'cls_idx' : cls_idx}
-            )
 
             frame_data.append(det_data)
 
@@ -245,6 +248,9 @@ class ArgoCL(Dataset):
                 self.log_files[i][frame], # type: ignore
                 self.im, self.pc, self.bx, self.glc)
 
+            if len(frame_data) == 0:
+                continue
+
             frame_sz.append(len(frame_data))
 
             for det in frame_data:
@@ -264,6 +270,9 @@ class ArgoCL(Dataset):
 
             if self.pvff and self.pc and pivot is None:
                 pivot = np.concatenate(pcls, axis=0).mean(axis=0, keepdims=True)
+
+        if len(track_idxs) == 0:
+            return pcls, pcls_sz, imgs, imgs_sz, bboxs, track_idxs, cls_idxs, frame_sz
 
         # Aggregate informations from all frames in temporal horizon
         if self.pc:
