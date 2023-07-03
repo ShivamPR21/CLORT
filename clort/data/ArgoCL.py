@@ -142,15 +142,19 @@ class ArgoCL(Dataset):
             tr = np.asanyarray(frame_log['local_to_global_transform'], dtype=np.float32)
             R, t = tr[:, :3], tr[:, 3]
 
-        n_det = len(list(frame_log.keys()))
+        dets = []
+        for k in frame_log.keys():
+            if k.startswith('det'):
+                dets.append(k)
+
+        n_det = len(dets)
         idxs_ = np.arange(n_det)
 
         if self.max_objects is not None and n_det > self.max_objects:
-            idxs_ = np.random.randint(0, n_det, size=self.max_objects)
+            idxs_ = np.random.choice(n_det, size=self.max_objects, replace=False)
 
-        dets = list(frame_log.keys())
         for det_idx in idxs_:
-            det = dets[det_idx]
+            det = str(dets[det_idx])
             if not det.startswith('det'):
                 continue
 
@@ -216,6 +220,7 @@ class ArgoCL(Dataset):
         return frame_data
 
     def __getitem__(self, index) -> Any:
+        # print(f'{index = }')
         i, index = self.get_reduced_index(index)
         log_id : str = self.log_files[i].name # type: ignore
 
@@ -249,7 +254,6 @@ class ArgoCL(Dataset):
                 if self.pc:
                     pcls.append(det['pcl']) # type: ignore
                     pcls_sz.append(det['pcl'].shape[0]) # type: ignore
-
 
                 if self.im:
                     imgs.append(det['imgs'])  # type: ignore
@@ -341,20 +345,21 @@ class ArgoCLSampler(Sampler):
         self.n = data_source.n
         self.N = len(data_source)
 
-        self._idxs = np.zeros((np.max(self.n), len(self.n)), dtype=int)
+        self._idxs = []
 
         prev_len = 0
-        for i, n in enumerate(self.n):
+        for n in self.n:
             idxs = np.arange(n, dtype=int)
             np.random.shuffle(idxs) if shuffle else None
-
-            if n < self._idxs.shape[0]:
-                idxs = np.concatenate((idxs, np.random.choice(idxs, size=self._idxs.shape[0]-n)))
-
-            self._idxs[:, i] = idxs + prev_len
+            self._idxs.append(idxs + prev_len)
             prev_len += n
 
-        self._idxs = self._idxs.flatten(order='C').tolist()
+        self._idxs = np.concatenate(self._idxs)
+
+        shp = (len(self._idxs)//len(self.n), len(self.n))
+        excess = self._idxs[shp[0]*shp[1]:]
+
+        self._idxs = self._idxs[:shp[0]*shp[1]].reshape(shp, order='F').flatten(order='C').tolist() + excess.tolist()
 
     def __iter__(self) -> Iterator:
         return iter(self._idxs)
