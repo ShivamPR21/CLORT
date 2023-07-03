@@ -10,6 +10,7 @@ imgs: True
 pcl: True
 global_frame: True,
 pivot_to_first_frame: False,
+img_shape: [224, 224]
 pcl_quant: [50, 100, 200, 500]
 img_aug_prob: 0.5
 pc_aug_prob: 0.5
@@ -17,5 +18,6 @@ pc_aug_prob: 0.5
 # Dataloader
 batch: 4
 shuffle: True
+persistent: True
 workers: 8
 prefetch: 8

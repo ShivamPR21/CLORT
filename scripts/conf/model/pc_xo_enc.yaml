@@ -1,0 +1,18 @@
+info: "PC XO Encoder : PointCloud Encoder w/ CrossObject awareness at lower level"
+## MV Encoder
+mv_features: null
+mv_xo: False
+## PC Encoder
+pc_features: 128
+pc_xo: True
+## MM Encoder
+mm_features: null
+mm_xo: False
+## MMC Encoder
+mmc_features: null
+
+device: 'cuda'
+
+restore: False
+run_path: null
+model_file: null

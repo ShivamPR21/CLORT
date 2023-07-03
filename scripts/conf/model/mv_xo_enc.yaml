@@ -1,0 +1,18 @@
+info: "MV XO Encoder : MultiView Encoder w/ CrossObject awareness at lower level"
+## MV Encoder
+mv_features: 256
+mv_xo: True
+## PC Encoder
+pc_features: null
+pc_xo: False
+## MM Encoder
+mm_features: null
+mm_xo: False
+## MMC Encoder
+mmc_features: null
+
+device: 'cuda'
+
+restore: False
+run_path: null
+model_file: null

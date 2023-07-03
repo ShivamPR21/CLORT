@@ -1,0 +1,18 @@
+info: "MM XO Encoder : MultiModal Encoder w/ CrossObject awareness at lower level"
+## MV Encoder
+mv_features: 256
+mv_xo: True
+## PC Encoder
+pc_features: 128
+pc_xo: True
+## MM Encoder
+mm_features: 256
+mm_xo: True
+## MMC Encoder
+mmc_features: null
+
+device: 'cuda'
+
+restore: False
+run_path: null
+model_file: null

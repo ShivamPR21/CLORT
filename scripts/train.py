@@ -243,12 +243,12 @@ def main(cfg: DictConfig):
     train_dl = DataLoader(train_dataset, cfg.dataset.batch, shuffle=False,
                           sampler=ArgoCLSampler(train_dataset, cfg.dataset.shuffle),
                           collate_fn=ArgoCl_collate_fxn, num_workers=cfg.dataset.workers,
-                          prefetch_factor=cfg.dataset.prefetch)
+                          prefetch_factor=cfg.dataset.prefetch, persistent_workers=cfg.dataset.persistent)
 
     val_dl = DataLoader(val_dataset, cfg.dataset.batch, shuffle=False,
                         sampler=ArgoCLSampler(val_dataset, False),
                         collate_fn=ArgoCl_collate_fxn, num_workers=cfg.dataset.workers,
-                        prefetch_factor=cfg.dataset.prefetch)
+                        prefetch_factor=cfg.dataset.prefetch, persistent_workers=cfg.dataset.persistent)
 
     print(f'{len(train_dl) = } \t {len(val_dl) = }')
 
