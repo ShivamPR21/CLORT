@@ -1,4 +1,5 @@
 defaults:
+  - wb: clort
   - model: mv_enc
   - dataset: argo_mv
   - loss: all_states

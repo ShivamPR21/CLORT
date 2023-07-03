@@ -1,4 +1,4 @@
-from typing import Callable, List, Tuple
+from typing import Any, Callable, List, Tuple
 
 import numpy as np
 import torch
@@ -64,7 +64,6 @@ class ContrastiveLoss(nn.Module):
     def forward_(self, x: torch.Tensor, track_idxs: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         # x -> [n_obj', N]
         # y -> [n_obj, Q, N]
-        # print(f'{x.shape = } \t {y.shape = }')
 
         if (y.device != x.device):
             y = y.to(x.device)
@@ -87,11 +86,9 @@ class ContrastiveLoss(nn.Module):
             y_idxs = ut_ids.repeat(Q)
 
         num, den = torch.zeros(1, dtype=torch.float32, device=x.device), torch.zeros(1, dtype=torch.float32, device=x.device)
-        n_pos, n_neg = \
-            torch.tensor([0], dtype=torch.float32, device=x.device, requires_grad=False),\
-                  torch.tensor([0], dtype=torch.float32, device=x.device, requires_grad=False)
+        n_pos, n_neg = 0, 0
 
-        loss: torch.Tensor | List[Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]] | None = [] if self.separate_tracks else None
+        loss: torch.Tensor | List[Any] | None = [] if self.separate_tracks else None
 
         for uid in ut_ids:
             x_map = track_idxs == uid
@@ -140,7 +137,7 @@ class ContrastiveLoss(nn.Module):
             if self.sim_type == "dot":
                 den = den + ((x_pos * y_neg).sum(dim=-1)/self.temp).exp().sum()
             elif self.sim_type == "diff":
-                den = den + (- ((x_pos - y_neg).norm(dim=-1))/self.temp).exp().sum()
+                den = den + (-((x_pos - y_neg).norm(dim=-1))/self.temp).exp().sum()
             else:
                 raise NotImplementedError(f'Similarity Type: {self.sim_type} not implemented')
             n_neg += x_neg.shape[0] * y_neg.shape[1]
@@ -156,11 +153,11 @@ class ContrastiveLoss(nn.Module):
 
             if self.separate_tracks:
                 assert(isinstance(loss, list))
-                loss.append((num, den, n_pos, n_neg))
-                n_pos *= 0.
-                n_neg *= 0.
-                num *= 0.
-                den *= 0.
+                loss.append([num, den, n_pos, n_neg])
+                num, den = \
+                    torch.zeros(1, dtype=torch.float32, device=x.device, requires_grad=True), \
+                        torch.zeros(1, dtype=torch.float32, device=x.device, requires_grad=True)
+                n_pos, n_neg = 0, 0
 
         if self.separate_tracks:
             assert(isinstance(loss, list))

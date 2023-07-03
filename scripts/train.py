@@ -64,6 +64,10 @@ class CLModel(nn.Module):
         else:
             raise NotImplementedError("Encoder resolution failed.")
 
+        print(f'Model Config: {mv_features = } \t {mv_xo = } \t {pc_features = } \t {bbox_aug = } \n'
+              f'{pc_xo = } \t {mm_features = } \t {mm_xo = } \t {mmc_features = }')
+        print(f'Model Out Dims: {self.out_dim = }')
+
         self.mv_enc = MultiViewEncoder(out_dim=mv_features,
                                        norm_2d=nn.InstanceNorm2d,
                                        norm_1d=nn.LayerNorm,
@@ -105,10 +109,10 @@ def train(epoch, enc: CLModel, train_dl, optimizer, criterion, mem_bank, log_ste
     for itr, (pcls, pcls_sz, imgs, imgs_sz, bboxs, track_idxs, _cls_idxs, frame_sz, n_tracks) in (t_bar := tqdm(enumerate(train_dl), total=len(train_dl))):
         optimizer.zero_grad()
 
-        pcls = pcls.to(model_device)
-        imgs = imgs.to(model_device)
+        pcls = pcls.to(model_device) if isinstance(pcls, torch.Tensor) else pcls
+        imgs = imgs.to(model_device) if isinstance(imgs, torch.Tensor) else imgs
+        bboxs = bboxs.to(model_device) if isinstance(bboxs, torch.Tensor) else bboxs
         track_idxs = torch.from_numpy(track_idxs.astype(np.int32))
-        bboxs = bboxs.to(model_device)
 
         mv_e, pc_e, mm_e, mmc_e = enc(pcls, pcls_sz, imgs, imgs_sz, bboxs, frame_sz)
 
@@ -159,10 +163,10 @@ def val(epoch, enc, val_dl, criterion, mem_bank, log_step=100, wb = True, model_
     with torch.no_grad():
         for itr, (pcls, pcls_sz, imgs, imgs_sz, bboxs, track_idxs, _cls_idxs, frame_sz, n_tracks) in (v_bar := tqdm(enumerate(val_dl), total=len(val_dl))):
 
-            pcls = pcls.to(model_device)
-            imgs = imgs.to(model_device)
+            pcls = pcls.to(model_device) if isinstance(pcls, torch.Tensor) else pcls
+            imgs = imgs.to(model_device) if isinstance(imgs, torch.Tensor) else imgs
+            bboxs = bboxs.to(model_device) if isinstance(bboxs, torch.Tensor) else bboxs
             track_idxs = torch.from_numpy(track_idxs.astype(np.int32))
-            bboxs = bboxs.to(model_device)
 
             mv_e, pc_e, mm_e, mmc_e = enc(pcls, pcls_sz, imgs, imgs_sz, bboxs, frame_sz)
 
@@ -201,7 +205,7 @@ def main(cfg: DictConfig):
     # start a new wandb run to track this script
     run = wandb.init(
         # set the wandb project where this run will be logged
-        project="CLORT",
+        project=cfg.wb.project,
 
         # track hyper-parameters and run metadata
         config=flatten_cfg(cfg)
@@ -248,7 +252,7 @@ def main(cfg: DictConfig):
     ## Initiate Encoders
     enc = CLModel(cfg.model.mv_features, cfg.model.mv_xo, cfg.model.pc_features, cfg.dataset.bbox_aug,
                   cfg.model.pc_xo, cfg.model.mm_features, cfg.model.mm_xo, cfg.model.mmc_features)
-    enc = enc.to()
+    enc = enc.to(cfg.model.device)
 
     # Initiate MemoryBanks
     mb = MemoryBank(train_dataset.n_tracks, enc.out_dim, cfg.mb.n_track_centers,

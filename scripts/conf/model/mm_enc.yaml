@@ -1,6 +1,6 @@
 info: "MM Encoder : MultiModal Encoder"
 ## MV Encoder
-img_features: 256
+mv_features: 256
 mv_xo: False
 ## PC Encoder
 pc_features: 128
@@ -9,10 +9,10 @@ pc_xo: False
 mm_features: 256
 mm_xo: False
 ## MMC Encoder
-mmc_features: None
+mmc_features: null
 
 device: 'cuda'
 
 restore: False
-run_path: None
-model_file: None
+run_path: null
+model_file: null

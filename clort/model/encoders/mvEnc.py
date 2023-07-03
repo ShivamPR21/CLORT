@@ -23,13 +23,13 @@ class CrossViewAttention(SelfGraphAttentionLinear):
                  activation_layer: Callable[..., nn.Module] | None = None):
         super().__init__(in_dim, out_dim, residual, dynamic_batching)
 
-        self.norm_layer = norm_layer() if norm_layer is not None else None
+        self.norm_layer = norm_layer(out_dim) if norm_layer is not None else None
         self.activation_layer = activation_layer() if activation_layer is not None else None
 
     def forward(self, x: torch.Tensor, n_views: np.ndarray) -> torch.Tensor:
         sz_arr = [_.numpy().tolist() for _ in torch.arange(0, x.shape[0], dtype=torch.int32).split(n_views.tolist(), dim=0)]
 
-        output = torch.zeros((len(sz_arr), 128), dtype=torch.float32, device=x.device)
+        output = torch.zeros((len(sz_arr), self.out_dim), dtype=torch.float32, device=x.device)
 
         for i, sz_idxs in enumerate(sz_arr):
             output[i, :] = x[sz_idxs, :].max(dim=0).values

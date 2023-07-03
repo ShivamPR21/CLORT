@@ -237,8 +237,6 @@ class ArgoCL(Dataset):
 
         pivot: np.ndarray | None = None
 
-        # print(f'{index, min(index+self.th, n) = }')
-
         for frame in self.frames[log_id][index:min(index+self.th, n)]:
             frame_data = self.extract_frame_info(
                 log_id,

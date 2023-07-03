@@ -1,18 +1,18 @@
 info: "MV Encoder : MultiView Encoder"
 ## MV Encoder
-img_features: 256
+mv_features: 256
 mv_xo: False
 ## PC Encoder
-pc_features: None
+pc_features: null
 pc_xo: False
 ## MM Encoder
-mm_features: None
+mm_features: null
 mm_xo: False
 ## MMC Encoder
-mmc_features: None
+mmc_features: null
 
 device: 'cuda'
 
 restore: False
-run_path: None
-model_file: None
+run_path: null
+model_file: null
