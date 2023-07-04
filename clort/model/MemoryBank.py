@@ -38,7 +38,7 @@ class MemoryBank(nn.Module):
         memory = None
         if self.init == 'zeros':
             memory = torch.zeros((self.n_tracks, self.Q, self.N), dtype=torch.float32, device=self.device) # zeros initialization
-        if self.init == 'uniform':
+        elif self.init == 'uniform':
             memory = torch.ones((self.n_tracks, self.Q, self.N), dtype=torch.float32, device=self.device) / np.sqrt(self.N) # uniform initialization
         elif self.init == 'orthogonal.uniform':
             memory = torch.zeros((self.n_tracks, self.Q, self.N), dtype=torch.float32, device=self.device) # uniform initialization
