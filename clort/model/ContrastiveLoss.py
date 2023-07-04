@@ -86,14 +86,13 @@ class ContrastiveLoss(nn.Module):
 
             y_idxs = ut_ids.repeat(Q)
 
-        num, den, _loss = torch.zeros(1, dtype=torch.float32, device=x.device), \
-            torch.zeros(1, dtype=torch.float32, device=x.device), \
-                torch.zeros(1, dtype=torch.float32, device=x.device)
+        num, den = torch.zeros(len(ut_ids), dtype=torch.float32, device=x.device), \
+            torch.zeros(len(ut_ids), dtype=torch.float32, device=x.device)
         n_pos, n_neg = 0, 0
 
         loss: torch.Tensor | None = None
 
-        for uid in ut_ids:
+        for i, uid in enumerate(ut_ids):
             x_map = track_idxs == uid
             y_map = y_idxs == uid
 
@@ -104,13 +103,13 @@ class ContrastiveLoss(nn.Module):
 
             if self.sc:
                 if self.sim_type == "dot":
-                    num = num + ((x_pos * y_pos).sum(dim=-1)/self.temp).exp().sum()
+                    num[i] = num[i] + ((x_pos * y_pos).sum(dim=-1)/self.temp).exp().sum()
                 elif self.sim_type == "diff":
-                    num = num + (-((x_pos - y_pos).norm(dim=-1))/self.temp).exp().sum()
+                    num[i] = num[i] + (-((x_pos - y_pos).norm(dim=-1))/self.temp).exp().sum()
                 else:
                     raise NotImplementedError(f'Similarity Type: {self.sim_type} not implemented')
             else:
-                num = num + ((x_pos - y_pos).norm(dim=-1)).mean() # Hard constraint numerator is added to
+                num[i] = num[i] + ((x_pos - y_pos).norm(dim=-1)).mean() # Hard constraint numerator is added to
                                                                 # loss thus needs to mean instead of sum
 
             n_pos += x_pos.shape[0] * y_pos.shape[1]
@@ -128,7 +127,7 @@ class ContrastiveLoss(nn.Module):
                     tmp = ((x_pos - x_pos.transpose(0, 1)).norm(dim=-1))
 
                 tmp = tmp * (1.0 - torch.eye(tmp.shape[0], dtype=torch.float32, device=x.device))
-                num = num + (tmp.sum()/2. if self.sc else tmp.mean()) # Hard constraint numerator is added to
+                num[i] = num[i] + (tmp.sum()/2. if self.sc else tmp.mean()) # Hard constraint numerator is added to
                                                                 # loss thus needs to mean instead of sum
                 n_pos += (x_pos.shape[0]*(x_pos.shape[0] - 1)/2.)
 
@@ -138,29 +137,25 @@ class ContrastiveLoss(nn.Module):
             x_neg, y_neg = x_neg.unsqueeze(dim=0), y_neg.unsqueeze(dim=0)
 
             if self.sim_type == "dot":
-                den = den + ((x_pos * y_neg).sum(dim=-1)/self.temp).exp().sum()
+                den[i] = den[i] + ((x_pos * y_neg).sum(dim=-1)/self.temp).exp().sum()
             elif self.sim_type == "diff":
-                den = den + (-((x_pos - y_neg).norm(dim=-1))/self.temp).exp().sum()
+                den[i] = den[i] + (-((x_pos - y_neg).norm(dim=-1))/self.temp).exp().sum()
             else:
                 raise NotImplementedError(f'Similarity Type: {self.sim_type} not implemented')
             n_neg += x_neg.shape[0] * y_neg.shape[1]
 
             if self.stc:
                 if self.sim_type == "dot":
-                    den = den + ((x_pos * x_neg).sum(dim=-1)/self.temp).exp().sum()
+                    den[i] = den[i] + ((x_pos * x_neg).sum(dim=-1)/self.temp).exp().sum()
                 elif self.sim_type == "diff":
-                    den = den + (-((x_pos - x_neg).norm(dim=-1))/self.temp).exp().sum()
+                    den[i] = den[i] + (-((x_pos - x_neg).norm(dim=-1))/self.temp).exp().sum()
                 else:
                     raise NotImplementedError(f'Similarity Type: {self.sim_type} not implemented')
                 n_neg += x_pos.shape[0] * x_neg.shape[0]
 
-            if self.separate_tracks:
-                _loss = _loss + self.loss(num, den)/len(ut_ids)
-                num[:], den[:], n_pos, n_neg = 0., 0., 0, 0
-
         if self.separate_tracks:
-            loss = _loss
+            loss = self.loss(num, den).mean()
         else:
-            loss = self.loss(num, den)
+            loss = self.loss(num.sum(), den.sum())
 
         return loss

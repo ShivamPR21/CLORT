@@ -64,7 +64,10 @@ class MemoryBank(nn.Module):
         self.update_cnt[:] = False
 
     def update(self, reprs: torch.Tensor, track_idxs: torch.Tensor) -> None:
-        assert(self.memory is not None)
+        if not reprs.is_leaf:
+            print("Warning: Memory Bank expects a leaf tensor, trying to run detach function")
+            reprs = reprs.detach()
+
         # Warning: Use normalized representations
         # track_idxs -> [n, ]
         # reprs_dims -> [n, N]
@@ -91,12 +94,10 @@ class MemoryBank(nn.Module):
             self.memory[uid, :, :] = mem_reprs / (mem_reprs.norm(dim=-1, keepdim=True) + self.eps) # Representation Normalization
 
     def get_reprs(self, track_idxs: torch.Tensor) -> torch.Tensor:
-        assert(self.memory is not None)
         # track_idxs -> [n, ]
         return self.memory[track_idxs, :, :] # [n, Q, N]
 
     def get_memory(self) -> torch.Tensor:
-        assert(self.memory is not None)
         return self.memory
 
 class MemoryBankInfer(nn.Module):
@@ -124,6 +125,10 @@ class MemoryBankInfer(nn.Module):
         self.memory[:, :, :] = 0.
 
     def update(self, reprs: torch.Tensor, track_idxs: torch.Tensor) -> None:
+        if not reprs.is_leaf:
+            print("Warning: Memory Bank expects a leaf tensor, trying to run detach function")
+            reprs = reprs.detach()
+
         # reprs -> [n_tracks, N]
         if reprs.device != self.device:
             reprs = reprs.to(self.device)
