@@ -3,3 +3,8 @@ n_track_centers: 1
 track_center_momentum: [0.3]
 device: 'cpu'
 reset: False
+
+# Initialization config
+init: 'zeros'
+init_dilation: 1
+init_density: 1

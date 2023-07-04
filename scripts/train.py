@@ -266,9 +266,11 @@ def main(cfg: DictConfig):
     enc = enc.to(cfg.model.device)
 
     # Initiate MemoryBanks
+    assert(enc.out_dim is not None)
     mb = MemoryBank(train_dataset.n_tracks, enc.out_dim, cfg.mb.n_track_centers,
                     alpha=torch.tensor(cfg.mb.track_center_momentum, dtype=torch.float32, device=cfg.mb.device),
-                    device=cfg.mb.device) if enc.out_dim is not None else None
+                    device=cfg.mb.device, init=cfg.mb.init, init_dilation=cfg.mb.init_dilation,
+                    init_density=cfg.mb.init_density)
 
     cl = ContrastiveLoss(temp=cfg.loss.temperature, global_contrast=cfg.loss.global_contrast,
                         separate_tracks=cfg.loss.separate_tracks, static_contrast=cfg.loss.static_contrast,
@@ -281,7 +283,7 @@ def main(cfg: DictConfig):
     else:
         mb_infer = MemoryBank(val_dataset.n_tracks, enc.out_dim, cfg.mb.n_track_centers,
                               alpha=torch.tensor(cfg.mb.track_center_momentum, dtype=torch.float32, device=cfg.mb.device),
-                              device=cfg.mb.device) if enc.out_dim is not None else None
+                              device=cfg.mb.device)
 
     cl_infer = ContrastiveLoss(temp=cfg.loss.temperature, global_contrast=cfg.loss.global_contrast,
                                separate_tracks=cfg.loss.separate_tracks, static_contrast=cfg.loss.static_contrast,

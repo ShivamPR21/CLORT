@@ -5,6 +5,6 @@ device: 'cpu'
 reset: False
 
 # Initialization config
-init: 'zeros'
+init: 'uniform'
 init_dilation: 1
 init_density: 1

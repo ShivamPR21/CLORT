@@ -9,11 +9,19 @@ class MemoryBank(nn.Module):
 
     def __init__(self, n_tracks: int, N: int, Q: int,
                  alpha: Union[np.ndarray, torch.Tensor],
-                 eps: float = 1e-9, device: torch.device | str = 'cpu') -> None:
+                 eps: float = 1e-9, device: torch.device | str = 'cpu',
+                 init: str = 'zeros',
+                 init_dilation: int = 1,
+                 init_density: int = 1) -> None:
+        assert(init in ['zeros', 'uniform', 'orthogonal.uniform', 'orthogonal.distributed'])
+        assert((init_density >= 1) and (init_dilation >= 1) and (init in ['orthogonal.uniform', 'orthogonal.distributed'] or (init_dilation == 1 and init_density == 1)))
+
         super().__init__()
+
         self.eps = eps
         self.device = device
         self.N, self.Q, self.n_tracks = N, Q, n_tracks
+        self.init, self.init_dilation, self.init_density = init, init_dilation,init_density
 
         if isinstance(alpha, np.ndarray):
             alpha = torch.tensor(alpha.tolist(), dtype=torch.float32, device=self.device)
@@ -23,13 +31,40 @@ class MemoryBank(nn.Module):
 
         self.alpha = nn.Parameter(alpha.reshape((Q, 1)), requires_grad = False)
 
-        self.memory = nn.Parameter(torch.zeros((n_tracks, Q, N), dtype=torch.float32, device=self.device),
-                                   requires_grad = False)
+        self.memory = nn.Parameter(self.init_memory(), requires_grad=False)
+        self.update_cnt = nn.Parameter(torch.zeros((self.n_tracks,), dtype=torch.bool), requires_grad=False)
 
-    def reset(self):
-        self.memory *= 0.
+    def init_memory(self) -> torch.Tensor:
+        memory = None
+        if self.init == 'zeros':
+            memory = torch.zeros((self.n_tracks, self.Q, self.N), dtype=torch.float32, device=self.device) # zeros initialization
+        if self.init == 'uniform':
+            memory = torch.ones((self.n_tracks, self.Q, self.N), dtype=torch.float32, device=self.device) / np.sqrt(self.N) # uniform initialization
+        elif self.init == 'orthogonal.uniform':
+            memory = torch.zeros((self.n_tracks, self.Q, self.N), dtype=torch.float32, device=self.device) # uniform initialization
+            for i in range(self.n_tracks):
+                truth_idxs = (torch.arange(i, i+self.init_density, dtype=torch.int32)*self.init_dilation)%self.N
+                memory[i, :, truth_idxs] = 1. # Orthogonal uniform initialization
+            memory /= np.sqrt(self.init_density)
+        elif self.init == 'orthogonal.distributed':
+            memory = torch.zeros((self.n_tracks, self.Q, self.N), dtype=torch.float32, device=self.device) # uniform initialization
+            for i in range(self.n_tracks):
+                for q in range(self.Q):
+                    truth_idxs = (torch.arange(i, i+self.init_density, dtype=torch.int32)*self.init_dilation+\
+                                  q*self.init_dilation)%self.N
+                    memory[i, q, truth_idxs] = 1. # Orthogonal distributed initialization
+            memory /= np.sqrt(self.init_density)
+        else:
+            raise NotImplementedError(f'The initialization method {self.init} isn\'t implemented')
+
+        return memory
+
+    def reset(self) -> None:
+        self.memory[:, :, :] = self.init_memory()
+        self.update_cnt[:] = False
 
     def update(self, reprs: torch.Tensor, track_idxs: torch.Tensor) -> None:
+        assert(self.memory is not None)
         # Warning: Use normalized representations
         # track_idxs -> [n, ]
         # reprs_dims -> [n, N]
@@ -43,8 +78,9 @@ class MemoryBank(nn.Module):
             track_reprs = reprs[map, :].unsqueeze(dim=0) # [1, k<<n, N]
             mem_reprs = self.memory[uid, :, :].unsqueeze(dim=1) # [Q, 1, N]
 
-            if torch.all(mem_reprs == 0.):
+            if self.init == 'zeros' and not self.update_cnt[uid]:
                 sim_idxs = torch.randint(track_reprs.shape[1], size=(self.Q,), device=self.device)
+                self.update_cnt[uid] = True
             else:
                 sim_mat = (mem_reprs * track_reprs).sum(dim=-1) # Similarity matrix # [Q, k]
                 sim_idxs = sim_mat.argmin(dim=1) # Least similar index over k encodings # [Q,]
@@ -55,10 +91,12 @@ class MemoryBank(nn.Module):
             self.memory[uid, :, :] = mem_reprs / (mem_reprs.norm(dim=-1, keepdim=True) + self.eps) # Representation Normalization
 
     def get_reprs(self, track_idxs: torch.Tensor) -> torch.Tensor:
+        assert(self.memory is not None)
         # track_idxs -> [n, ]
         return self.memory[track_idxs, :, :] # [n, Q, N]
 
     def get_memory(self) -> torch.Tensor:
+        assert(self.memory is not None)
         return self.memory
 
 class MemoryBankInfer(nn.Module):
@@ -81,9 +119,9 @@ class MemoryBankInfer(nn.Module):
                                    requires_grad = False)
 
     def reset(self):
-        self.beta *= 0
-        self.count *= 0.
-        self.memory *= 0.
+        self.beta[:, :] = 0
+        self.count[:, :] = 0.
+        self.memory[:, :, :] = 0.
 
     def update(self, reprs: torch.Tensor, track_idxs: torch.Tensor) -> None:
         # reprs -> [n_tracks, N]

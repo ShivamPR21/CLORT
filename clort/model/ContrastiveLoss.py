@@ -1,4 +1,4 @@
-from typing import Any, Callable, List, Tuple
+from typing import Any, Callable, List
 
 import numpy as np
 import torch
@@ -154,9 +154,7 @@ class ContrastiveLoss(nn.Module):
             if self.separate_tracks:
                 assert(isinstance(loss, list))
                 loss.append([num, den, n_pos, n_neg])
-                num, den = \
-                    torch.zeros(1, dtype=torch.float32, device=x.device, requires_grad=True), \
-                        torch.zeros(1, dtype=torch.float32, device=x.device, requires_grad=True)
+                num[:], den[:] = 0, 0
                 n_pos, n_neg = 0, 0
 
         if self.separate_tracks:
