@@ -138,7 +138,7 @@ class MultiViewEncoder(nn.Module):
         x = torch.cat([x2_p, x4_p, x6_p, x7], dim=1)
         x = self.linear8(x)
 
-        x= self.projection_head(x)
+        x = self.projection_head(x)
 
         x = x/(x.norm(dim=1, keepdim=True) + self.eps)
 

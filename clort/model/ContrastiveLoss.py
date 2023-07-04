@@ -1,4 +1,4 @@
-from typing import Any, Callable, List
+from typing import Callable
 
 import numpy as np
 import torch
@@ -23,7 +23,8 @@ class ContrastiveLoss(nn.Module):
                  sim_fxn: Callable[[torch.Tensor, torch.Tensor], torch.Tensor] = dot_similarity) -> None:
         super().__init__()
 
-        self.temp = temp
+        self.temp = np.float32(temp)
+
         self.global_contrast = global_contrast
         self.separate_tracks = separate_tracks
 
@@ -85,10 +86,12 @@ class ContrastiveLoss(nn.Module):
 
             y_idxs = ut_ids.repeat(Q)
 
-        num, den = torch.zeros(1, dtype=torch.float32, device=x.device), torch.zeros(1, dtype=torch.float32, device=x.device)
+        num, den, _loss = torch.zeros(1, dtype=torch.float32, device=x.device), \
+            torch.zeros(1, dtype=torch.float32, device=x.device), \
+                torch.zeros(1, dtype=torch.float32, device=x.device)
         n_pos, n_neg = 0, 0
 
-        loss: torch.Tensor | List[Any] | None = [] if self.separate_tracks else None
+        loss: torch.Tensor | None = None
 
         for uid in ut_ids:
             x_map = track_idxs == uid
@@ -152,17 +155,11 @@ class ContrastiveLoss(nn.Module):
                 n_neg += x_pos.shape[0] * x_neg.shape[0]
 
             if self.separate_tracks:
-                assert(isinstance(loss, list))
-                loss.append([num, den, n_pos, n_neg])
-                num[:], den[:] = 0, 0
-                n_pos, n_neg = 0, 0
+                _loss = _loss + self.loss(num, den)/len(ut_ids)
+                num[:], den[:], n_pos, n_neg = 0., 0., 0, 0
 
         if self.separate_tracks:
-            assert(isinstance(loss, list))
-            loss_ = torch.tensor([0], dtype=torch.float32, device=x.device)
-            for num, den, _, _ in loss:
-                loss_ = loss_ + self.loss(num, den)/len(ut_ids)
-            loss = loss_
+            loss = _loss
         else:
             loss = self.loss(num, den)
 
