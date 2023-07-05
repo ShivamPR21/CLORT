@@ -72,6 +72,7 @@ class ContrastiveLoss(nn.Module):
         ut_ids = track_idxs.unique()
 
         y_idxs : torch.Tensor | None = None
+        Q : int | None = None
 
         if self.global_contrast:
             n, Q, _ = y.size()
@@ -85,6 +86,8 @@ class ContrastiveLoss(nn.Module):
             y = y.flatten(0, 1)
 
             y_idxs = ut_ids.repeat(Q)
+
+        assert(Q is not None)
 
         num, den = torch.zeros(len(ut_ids), dtype=torch.float32, device=x.device), \
             torch.zeros(len(ut_ids), dtype=torch.float32, device=x.device)
@@ -154,8 +157,8 @@ class ContrastiveLoss(nn.Module):
                 n_neg += x_pos.shape[0] * x_neg.shape[0]
 
         if self.separate_tracks:
-            loss = self.loss(num, den).mean()
+            loss = self.loss(num, den).mean()/float(Q)
         else:
-            loss = self.loss(num.sum(), den.sum())
+            loss = self.loss(num.sum(), den.sum())/float(len(ut_ids)*Q)
 
         return loss

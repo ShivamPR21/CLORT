@@ -204,13 +204,15 @@ def val(epoch, enc, val_dl, criterion, mem_bank, log_step=100, wb = True, model_
 
 @hydra.main(version_base=None, config_path="./conf", config_name="config")
 def main(cfg: DictConfig):
-    # trunk-ignore(gitleaks/generic-api-key)
-    wandb.login(key="724cb09699cc6beb92d458355f42ca29e3a67137")
+    wandb.login()
 
     # start a new wandb run to track this script
     run = wandb.init(
         # set the wandb project where this run will be logged
         project=cfg.wb.project,
+
+        resume=cfg.wb.resume,
+        id=cfg.wb.run_id,
 
         # track hyper-parameters and run metadata
         config=flatten_cfg(cfg)
