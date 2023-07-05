@@ -281,7 +281,7 @@ def main(cfg: DictConfig):
     mb_infer = None
 
     if cfg.val_mb.mb == 'Infer':
-        mb_infer = MemoryBankInfer(val_dataset.n_tracks, enc.out_dim, cfg.mb.n_track_centers, t = min(2, enc.out_dim), device=cfg.mb.device) if enc.out_dim is not None else None
+        mb_infer = MemoryBankInfer(val_dataset.n_tracks, enc.out_dim, cfg.mb.n_track_centers, t = min(2, cfg.mb.n_track_centers), device=cfg.mb.device) if enc.out_dim is not None else None
     else:
         mb_infer = MemoryBank(val_dataset.n_tracks, enc.out_dim, cfg.mb.n_track_centers,
                               alpha=torch.tensor(cfg.mb.track_center_momentum, dtype=torch.float32, device=cfg.mb.device),
