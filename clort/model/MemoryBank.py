@@ -90,7 +90,7 @@ class MemoryBank(nn.Module):
 
             track_reprs, mem_reprs = track_reprs.squeeze(dim=0), mem_reprs.squeeze(dim=1)
 
-            mem_reprs = mem_reprs*self.alpha + track_reprs[sim_idxs, :]*(1-self.alpha) # [Q, N]
+            mem_reprs = mem_reprs*(1-self.alpha) + track_reprs[sim_idxs, :]*self.alpha # [Q, N]
             self.memory[uid, :, :] = mem_reprs / (mem_reprs.norm(dim=-1, keepdim=True) + self.eps) # Representation Normalization
 
     def get_reprs(self, track_idxs: torch.Tensor) -> torch.Tensor:
