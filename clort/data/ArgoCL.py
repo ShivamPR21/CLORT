@@ -350,13 +350,16 @@ class ArgoCLSampler(Sampler):
 
         self.n = data_source.n
         self.N = len(data_source)
+        self.shuffle = shuffle
+        self._generate_indices()
 
+    def _generate_indices(self) -> None:
         self._idxs = []
 
         prev_len = 0
         for n in self.n:
             idxs = np.arange(n, dtype=int)
-            np.random.shuffle(idxs) if shuffle else None
+            np.random.shuffle(idxs) if self.shuffle else None
             self._idxs.append(idxs + prev_len)
             prev_len += n
 
@@ -368,6 +371,9 @@ class ArgoCLSampler(Sampler):
         self._idxs = self._idxs[:shp[0]*shp[1]].reshape(shp, order='F').flatten(order='C').tolist() + excess.tolist()
 
     def __iter__(self) -> Iterator:
+        if self.shuffle:
+            self._generate_indices()
+
         return iter(self._idxs)
 
     def __len__(self) -> int:
