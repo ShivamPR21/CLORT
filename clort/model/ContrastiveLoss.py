@@ -1,12 +1,40 @@
-from typing import Callable
+from typing import Callable, Tuple
 
 import numpy as np
 import torch
 import torch.nn as nn
 
 
+def gradual_increase_temp(x: torch.Tensor) -> float:
+    _mean = x.mean().item()
+    _std = x.std().item()
+    _max = x.max().item()
+    _min = x.std().item()
+
+    if _mean > 0.7:
+        return 0.07
+    elif 0.5 < _mean <= 0.7:
+        return 0.15
+    elif 0.3 < _mean <= 0.5:
+        return 0.20
+    elif 0.1 < _mean <= 0.3:
+        return 0.30
+    else:
+        pass
+
+    return 1.
+
 def dot_similarity(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
     sim = x @ y.T
+    return sim
+
+def diff_similarity(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+    x = x.unsqueeze(dim=1) if x.ndim == 2 else x
+    y = y.unsqueeze(dim=0) if y.ndim == 2 else y
+
+    assert(x.ndim == 3 and y.ndim == 3)
+
+    sim = -(x - y).norm(dim=-1)
     return sim
 
 class ContrastiveLoss(nn.Module):
@@ -15,27 +43,54 @@ class ContrastiveLoss(nn.Module):
                  temp: float = 0.3,
                  global_contrast: bool = True,
                  separate_tracks: bool = True,
-                 static_contrast: bool = True,
+                 static_contrast: Tuple[bool, bool] | bool = True,
                  soft_condition: bool = True,
                  global_horizon: bool = True,
                  hard_condition_proportion: float = 0.5,
-                 sim_type: str = "dot", #"dot/diff" #TODO@ShivamPR21 Ad-hoc short term inplace remedy until sim-fxn is implemented
-                 sim_fxn: Callable[[torch.Tensor, torch.Tensor], torch.Tensor] = dot_similarity) -> None:
+                 sim_type: str | None = "dot", #"dot/diff" #TODO@ShivamPR21 Ad-hoc short term inplace remedy until sim-fxn is implemented
+                 sim_fxn: Callable[[torch.Tensor, torch.Tensor], torch.Tensor] | None = None,
+                 temperature_adaptation_policy: Callable[[torch.Tensor], torch.Tensor] | str | None = None # gradual_increase
+                 ) -> None:
         super().__init__()
 
-        self.temp = np.float32(temp)
+        self.temp = float(temp)
+        self.temp_adapt_policy = temperature_adaptation_policy
+
+        if isinstance(self.temp_adapt_policy, str):
+            if self.temp_adapt_policy == 'gradual_increase':
+                self.temp_adapt_policy = gradual_increase_temp
+            else:
+                raise NotImplementedError(f'Temperature adaptation policy < {self.temp_adapt_policy} > is not implemented.')
 
         self.global_contrast = global_contrast
         self.separate_tracks = separate_tracks
 
-        self.stc = static_contrast
+        self.p_stc, self.n_stc = (static_contrast, static_contrast) if isinstance(static_contrast, bool) else static_contrast
 
         self.sc, self.hcp = soft_condition, hard_condition_proportion
         self.glh = global_horizon # Localize to temporal horizon
 
-        self.sim_type = sim_type #TODO@ShivamPR21 Ad-hoc short term inplace remedy until sim-fxn is implemented
+        assert((sim_type is None and sim_fxn is not None) or (sim_type is not None and sim_type in ['dot', 'diff'] and sim_fxn is None)) # Mutually exclusive parameters
 
-        self.sim_fxn = sim_fxn #TODO@ShivamPR21 : Upgrade to Similarity function based disparity measure
+        if sim_fxn is not None:
+            if sim_type == 'dot':
+                self.neg_sim_fxn = dot_similarity
+            elif sim_type == 'diff':
+                self.neg_sim_fxn = diff_similarity
+            else:
+                raise NotImplementedError(f'Similarity Type argument is given as < {sim_type} > which is not implemented.')
+
+        if sim_fxn is not None:
+            self.neg_sim_fxn = sim_fxn
+
+        self.pos_sim_fxn = diff_similarity if not self.sc else self.neg_sim_fxn
+
+    def _get_temp(self, sim: torch.Tensor) -> float:
+        temp = self.temp
+        if self.temp_adapt_policy is not None:
+            temp = self.temp_adapt_policy(sim) # type: ignore
+
+        return temp
 
     def loss(self, num:torch.Tensor, den:torch.Tensor) -> torch.Tensor:
         loss : torch.Tensor | None = None
@@ -102,58 +157,41 @@ class ContrastiveLoss(nn.Module):
             x_pos = x[x_map, :]
             y_pos = y[y_map, :]
 
-            x_pos, y_pos = x_pos.unsqueeze(dim=1), y_pos.unsqueeze(dim=0)
+            ## Positive similarities
+            sim = self.pos_sim_fxn(x_pos, y_pos)
 
-            if self.sc:
-                if self.sim_type == "dot":
-                    num[i] = num[i] + ((x_pos * y_pos).sum(dim=-1)/self.temp).exp().sum()
-                elif self.sim_type == "diff":
-                    num[i] = num[i] + (-((x_pos - y_pos).norm(dim=-1))/self.temp).exp().sum()
-                else:
-                    raise NotImplementedError(f'Similarity Type: {self.sim_type} not implemented')
-            else:
-                num[i] = num[i] + ((x_pos - y_pos).norm(dim=-1)).mean() # Hard constraint numerator is added to
-                                                                # loss thus needs to mean instead of sum
+            temp = self._get_temp(sim)
+            num[i] = num[i] + (
+                (sim/temp).exp().sum() if self.sc else (-sim).mean()
+                )
+            # Hard constraint numerator is added to loss thus needs to mean instead of sum
+            n_pos += x_pos.shape[0] * y_pos.shape[0]
 
-            n_pos += x_pos.shape[0] * y_pos.shape[1]
+            if self.p_stc:
+                sim = self.pos_sim_fxn(x_pos, x_pos)
 
-            if self.stc:
-                tmp = 0
-                if self.sc:
-                    if self.sim_type == "dot":
-                        tmp = ((x_pos * x_pos.transpose(0, 1)).sum(dim=-1)/self.temp).exp()
-                    elif self.sim_type == "diff":
-                        tmp = (-((x_pos - x_pos.transpose(0, 1)).norm(dim=-1))/self.temp).exp()
-                    else:
-                        raise NotImplementedError(f'Similarity Type: {self.sim_type} not implemented')
-                else:
-                    tmp = ((x_pos - x_pos.transpose(0, 1)).norm(dim=-1))
-
+                temp = self._get_temp(sim)
+                tmp = (sim/temp).exp() if self.sc else -sim
                 tmp = tmp * (1.0 - torch.eye(tmp.shape[0], dtype=torch.float32, device=x.device))
-                num[i] = num[i] + (tmp.sum()/2. if self.sc else tmp.mean()) # Hard constraint numerator is added to
-                                                                # loss thus needs to mean instead of sum
+                num[i] = num[i] + (tmp.sum()/2. if self.sc else tmp.mean())
+                # Hard constraint numerator is added to loss thus needs to mean instead of sum
                 n_pos += (x_pos.shape[0]*(x_pos.shape[0] - 1)/2.)
 
+            # Negative similarities
             x_neg = x[~x_map, :]
             y_neg = y[~y_map, :]
 
-            x_neg, y_neg = x_neg.unsqueeze(dim=0), y_neg.unsqueeze(dim=0)
+            sim = self.neg_sim_fxn(x_pos , y_neg)
 
-            if self.sim_type == "dot":
-                den[i] = den[i] + ((x_pos * y_neg).sum(dim=-1)/self.temp).exp().sum()
-            elif self.sim_type == "diff":
-                den[i] = den[i] + (-((x_pos - y_neg).norm(dim=-1))/self.temp).exp().sum()
-            else:
-                raise NotImplementedError(f'Similarity Type: {self.sim_type} not implemented')
+            temp = self._get_temp(sim)
+            den[i] = den[i] + (sim/temp).exp().sum()
             n_neg += x_neg.shape[0] * y_neg.shape[1]
 
-            if self.stc:
-                if self.sim_type == "dot":
-                    den[i] = den[i] + ((x_pos * x_neg).sum(dim=-1)/self.temp).exp().sum()
-                elif self.sim_type == "diff":
-                    den[i] = den[i] + (-((x_pos - x_neg).norm(dim=-1))/self.temp).exp().sum()
-                else:
-                    raise NotImplementedError(f'Similarity Type: {self.sim_type} not implemented')
+            if self.n_stc:
+                sim = self.neg_sim_fxn(x_pos, x_neg)
+
+                temp = self._get_temp(sim)
+                den[i] = den[i] + (sim/temp).exp().sum()
                 n_neg += x_pos.shape[0] * x_neg.shape[0]
 
         if self.separate_tracks:

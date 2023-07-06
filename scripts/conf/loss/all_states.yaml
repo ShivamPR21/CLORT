@@ -6,3 +6,4 @@ global_contrast: True
 separate_tracks: True
 global_horizon: True
 sim_type: "dot"
+temperature_adaptation_policy: "gradual_increase"
