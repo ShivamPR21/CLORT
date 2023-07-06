@@ -86,7 +86,7 @@ class MemoryBank(nn.Module):
                 self.update_cnt[uid] = True
             else:
                 sim_mat = mem_reprs @ track_reprs.T # Similarity matrix # [Q, k]
-                sim_idxs = sim_mat.argmax(dim=1) # Least similar index over k encodings # [Q,]
+                sim_idxs = sim_mat.argmin(dim=1) # Least similar index over k encodings # [Q,]
 
             mem_reprs = mem_reprs*(1-self.alpha) + track_reprs[sim_idxs, :]*self.alpha # [Q, N]
             self.memory[uid, :, :] = mem_reprs / (mem_reprs.norm(dim=-1, keepdim=True) + self.eps) # Representation Normalization
