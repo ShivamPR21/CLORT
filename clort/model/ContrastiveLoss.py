@@ -5,24 +5,35 @@ import torch
 import torch.nn as nn
 
 
-def gradual_increase_temp(x: torch.Tensor) -> float:
-    _mean = x.mean().item()
-    _std = x.std().item()
-    _max = x.max().item()
-    _min = x.std().item()
+def _increase_util(_mean: float, default: float = 0.07) -> float:
+    _temp = default
 
-    if _mean > 0.7:
-        return 0.07
+    if _mean > 0.8:
+        _temp = 0.7
+    elif 0.7 < _mean <= 0.8:
+        _temp = 0.5
     elif 0.5 < _mean <= 0.7:
-        return 0.15
+        _temp = 0.3
     elif 0.3 < _mean <= 0.5:
-        return 0.20
-    elif 0.1 < _mean <= 0.3:
-        return 0.30
+        _temp = 0.2
+    elif 0. < _mean <= 0.3:
+        _temp = 0.1
     else:
         pass
 
-    return 1.
+    return _temp
+
+def gradual_increase_temp(pos: torch.Tensor, neg: torch.Tensor) -> Tuple[float, float]:
+    neg = -neg
+    _mean_p, _mean_n = pos.mean().item(), neg.mean().item()
+    # _std_p, _std_n = pos.std().item(), neg.std().item()
+    # _max_p, _max_n = pos.max().item(), neg.max().item()
+    # _min_p, _min_n = pos.min().item(), neg.min().item()
+
+    _temp_p, _temp_n = 0.07, 0.07
+    _temp_p, _temp_n = _increase_util(_mean_p, default=_temp_p), _increase_util(_mean_n, default=_temp_n)
+
+    return _temp_p, _temp_n
 
 def dot_similarity(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
     sim = x @ y.T
@@ -49,8 +60,9 @@ class ContrastiveLoss(nn.Module):
                  hard_condition_proportion: float = 0.5,
                  sim_type: str | None = "dot", #"dot/diff" #TODO@ShivamPR21 Ad-hoc short term inplace remedy until sim-fxn is implemented
                  sim_fxn: Callable[[torch.Tensor, torch.Tensor], torch.Tensor] | None = None,
-                 temperature_adaptation_policy: Callable[[torch.Tensor], torch.Tensor] | str | None = None # gradual_increase
-                 ) -> None:
+                 temperature_adaptation_policy: Callable[[torch.Tensor, torch.Tensor],
+                                                         Tuple[float, float]] | str | None = None, # gradual_increase
+                 pivot: float = 0.) -> None:
         super().__init__()
 
         self.temp = float(temp)
@@ -84,21 +96,25 @@ class ContrastiveLoss(nn.Module):
             self.neg_sim_fxn = sim_fxn
 
         self.pos_sim_fxn = diff_similarity if not self.sc else self.neg_sim_fxn
+        self.pivot = pivot
 
-    def _get_temp(self, sim: torch.Tensor) -> float:
-        temp = self.temp
+    def _get_temp(self, pos: torch.Tensor, neg: torch.Tensor) -> Tuple[float, float]:
+        temp_p, temp_n = self.temp, self.temp
         if self.temp_adapt_policy is not None:
-            temp = self.temp_adapt_policy(sim) # type: ignore
+            temp_p, temp_n = self.temp_adapt_policy(pos, neg) # type: ignore
 
-        return temp
+        return temp_p, temp_n # type: ignore
 
-    def loss(self, num:torch.Tensor, den:torch.Tensor) -> torch.Tensor:
+    def loss(self, num:torch.Tensor, den:torch.Tensor, pivot: torch.Tensor | None = None) -> torch.Tensor:
         loss : torch.Tensor | None = None
 
         if self.sc:
             loss = -(num/(den+num)).log()
         else:
             loss = (self.hcp*num + (den+num).log())/(self.hcp+1.)
+
+        if self.pivot > 0. and pivot is not None:
+            loss = loss + self.pivot * pivot
 
         return loss
 
@@ -144,8 +160,9 @@ class ContrastiveLoss(nn.Module):
 
         assert(Q is not None)
 
-        num, den = torch.zeros(len(ut_ids), dtype=torch.float32, device=x.device), \
-            torch.zeros(len(ut_ids), dtype=torch.float32, device=x.device)
+        num, den, pivot_loss = torch.zeros(len(ut_ids), dtype=torch.float32, device=x.device), \
+            torch.zeros(len(ut_ids), dtype=torch.float32, device=x.device), \
+                torch.zeros(len(ut_ids), dtype=torch.float32, device=x.device)
         n_pos, n_neg = 0, 0
 
         loss: torch.Tensor | None = None
@@ -154,49 +171,48 @@ class ContrastiveLoss(nn.Module):
             x_map = track_idxs == uid
             y_map = y_idxs == uid
 
+            ## Positive similarities
             x_pos = x[x_map, :]
             y_pos = y[y_map, :]
 
-            ## Positive similarities
-            sim = self.pos_sim_fxn(x_pos, y_pos)
-
-            temp = self._get_temp(sim)
-            num[i] = num[i] + (
-                (sim/temp).exp().sum() if self.sc else (-sim).mean()
-                )
-            # Hard constraint numerator is added to loss thus needs to mean instead of sum
-            n_pos += x_pos.shape[0] * y_pos.shape[0]
-
+            sim_p = self.pos_sim_fxn(x_pos, y_pos).flatten()
             if self.p_stc:
-                sim = self.pos_sim_fxn(x_pos, x_pos)
+                idxs = tuple(torch.triu_indices(x_pos.shape[0], x_pos.shape[0], 1))
+                sim_p = torch.cat([sim_p,
+                                  self.pos_sim_fxn(x_pos, x_pos)[idxs]]
+                                  )
+            n_pos += sim_p.nelement()
 
-                temp = self._get_temp(sim)
-                tmp = (sim/temp).exp() if self.sc else -sim
-                tmp = tmp * (1.0 - torch.eye(tmp.shape[0], dtype=torch.float32, device=x.device))
-                num[i] = num[i] + (tmp.sum()/2. if self.sc else tmp.mean())
-                # Hard constraint numerator is added to loss thus needs to mean instead of sum
-                n_pos += (x_pos.shape[0]*(x_pos.shape[0] - 1)/2.)
-
-            # Negative similarities
+            ## Negative similarities
             x_neg = x[~x_map, :]
             y_neg = y[~y_map, :]
 
-            sim = self.neg_sim_fxn(x_pos , y_neg)
-
-            temp = self._get_temp(sim)
-            den[i] = den[i] + (sim/temp).exp().sum()
-            n_neg += x_neg.shape[0] * y_neg.shape[1]
-
+            sim_n = self.neg_sim_fxn(x_pos , y_neg).flatten()
             if self.n_stc:
-                sim = self.neg_sim_fxn(x_pos, x_neg)
+                idxs = tuple(torch.triu_indices(x_pos.shape[0], x_neg.shape[0], 1))
+                sim_n = torch.cat([sim_n,
+                                  self.neg_sim_fxn(x_pos, x_neg)[idxs]]
+                                  )
+            n_neg += sim_n.nelement()
 
-                temp = self._get_temp(sim)
-                den[i] = den[i] + (sim/temp).exp().sum()
-                n_neg += x_pos.shape[0] * x_neg.shape[0]
+            temp_p, temp_n = self._get_temp(sim_p, sim_n)
+
+            # Positive similarities
+            num[i] = num[i] + (
+                (sim_p/temp_p).exp().sum() if self.sc else (-sim_p).mean()
+                )
+            # Hard constraint numerator is added to loss thus needs to mean instead of sum
+
+            # Negative similarities
+            den[i] = den[i] + (sim_n/temp_n).exp().sum()
+
+            # Pivot loss
+            if self.pivot > 0.:
+                pivot_loss[i] = ((1 - sim_p).mean().square() + (1 + sim_n).mean().square()).sqrt()
 
         if self.separate_tracks:
-            loss = self.loss(num, den).mean()/float(Q)
+            loss = self.loss(num, den, pivot_loss if self.pivot > 0. else None).mean()/float(Q)
         else:
-            loss = self.loss(num.sum(), den.sum())/float(len(ut_ids)*Q)
+            loss = self.loss(num.sum(), den.sum(), pivot_loss.sum() if self.pivot > 0. else None)/float(len(ut_ids)*Q)
 
         return loss

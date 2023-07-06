@@ -7,3 +7,4 @@ separate_tracks: True
 global_horizon: False
 sim_type: "dot"
 temperature_adaptation_policy: "gradual_increase"
+pivot: 0.0
