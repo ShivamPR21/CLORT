@@ -78,17 +78,15 @@ class MemoryBank(nn.Module):
 
         for uid in u_tids:
             map = (uid == track_idxs) # [n, ]
-            track_reprs = reprs[map, :].unsqueeze(dim=0) # [1, k<<n, N]
-            mem_reprs = self.memory[uid, :, :].unsqueeze(dim=1) # [Q, 1, N]
+            track_reprs = reprs[map, :] # [k<<n, N]
+            mem_reprs = self.memory[uid, :, :] # [Q, N]
 
             if self.init == 'zeros' and not self.update_cnt[uid]:
                 sim_idxs = torch.randint(track_reprs.shape[1], size=(self.Q,), device=self.device)
                 self.update_cnt[uid] = True
             else:
-                sim_mat = (mem_reprs * track_reprs).sum(dim=-1) # Similarity matrix # [Q, k]
-                sim_idxs = sim_mat.argmin(dim=1) # Least similar index over k encodings # [Q,]
-
-            track_reprs, mem_reprs = track_reprs.squeeze(dim=0), mem_reprs.squeeze(dim=1)
+                sim_mat = mem_reprs @ track_reprs.T # Similarity matrix # [Q, k]
+                sim_idxs = sim_mat.argmax(dim=1) # Least similar index over k encodings # [Q,]
 
             mem_reprs = mem_reprs*(1-self.alpha) + track_reprs[sim_idxs, :]*self.alpha # [Q, N]
             self.memory[uid, :, :] = mem_reprs / (mem_reprs.norm(dim=-1, keepdim=True) + self.eps) # Representation Normalization

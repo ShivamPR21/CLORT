@@ -16,8 +16,10 @@ def _increase_util(_mean: float, default: float = 0.07) -> float:
         _temp = 0.3
     elif 0.3 < _mean <= 0.5:
         _temp = 0.2
-    elif 0. < _mean <= 0.3:
+    elif -0.1 < _mean <= 0.3:
         _temp = 0.1
+    elif -0.2 < _mean <= -0.1:
+        _temp = 0.085
     else:
         pass
 
@@ -77,7 +79,7 @@ class ContrastiveLoss(nn.Module):
         self.global_contrast = global_contrast
         self.separate_tracks = separate_tracks
 
-        self.p_stc, self.n_stc = (static_contrast, static_contrast) if isinstance(static_contrast, bool) else static_contrast
+        self.p_stc, self.n_stc = static_contrast if isinstance(static_contrast, tuple) else (static_contrast, static_contrast)
 
         self.sc, self.hcp = soft_condition, hard_condition_proportion
         self.glh = global_horizon # Localize to temporal horizon
