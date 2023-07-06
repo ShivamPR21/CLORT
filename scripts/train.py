@@ -277,7 +277,8 @@ def main(cfg: DictConfig):
     cl = ContrastiveLoss(temp=cfg.loss.temperature, global_contrast=cfg.loss.global_contrast,
                         separate_tracks=cfg.loss.separate_tracks, static_contrast=cfg.loss.static_contrast,
                         soft_condition=cfg.loss.soft_condition, global_horizon=cfg.loss.global_horizon,
-                        sim_type=cfg.loss.sim_type, temperature_adaptation_policy=cfg.loss.temperature_adaptation_policy)
+                        sim_type=cfg.loss.sim_type, temperature_adaptation_policy=cfg.loss.temperature_adaptation_policy,
+                        pivot=cfg.loss.pivot)
 
     mb_infer = None
 
@@ -291,7 +292,8 @@ def main(cfg: DictConfig):
     cl_infer = ContrastiveLoss(temp=cfg.loss.temperature, global_contrast=cfg.loss.global_contrast,
                                separate_tracks=cfg.loss.separate_tracks, static_contrast=cfg.loss.static_contrast,
                                soft_condition=cfg.loss.soft_condition, global_horizon=cfg.loss.global_horizon,
-                               sim_type=cfg.loss.sim_type, temperature_adaptation_policy=cfg.loss.temperature_adaptation_policy)
+                               sim_type=cfg.loss.sim_type, temperature_adaptation_policy=cfg.loss.temperature_adaptation_policy,
+                               pivot=cfg.loss.pivot)
 
     # Initialize optimizer
     optimizer = torch.optim.AdamW(

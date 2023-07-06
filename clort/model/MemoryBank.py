@@ -82,7 +82,7 @@ class MemoryBank(nn.Module):
             mem_reprs = self.memory[uid, :, :] # [Q, N]
 
             if self.init == 'zeros' and not self.update_cnt[uid]:
-                sim_idxs = torch.randint(track_reprs.shape[1], size=(self.Q,), device=self.device)
+                sim_idxs = torch.randint(track_reprs.shape[0], size=(self.Q,), device=self.device)
                 self.update_cnt[uid] = True
             else:
                 sim_mat = mem_reprs @ track_reprs.T # Similarity matrix # [Q, k]
