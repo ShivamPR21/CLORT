@@ -72,7 +72,7 @@ class ContrastiveLoss(nn.Module):
 
         assert((sim_type is None and sim_fxn is not None) or (sim_type is not None and sim_type in ['dot', 'diff'] and sim_fxn is None)) # Mutually exclusive parameters
 
-        if sim_fxn is not None:
+        if sim_type is not None:
             if sim_type == 'dot':
                 self.neg_sim_fxn = dot_similarity
             elif sim_type == 'diff':
