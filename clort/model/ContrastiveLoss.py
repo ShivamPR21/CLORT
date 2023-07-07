@@ -164,7 +164,7 @@ class ContrastiveLoss(nn.Module):
 
         assert(Q is not None)
 
-        num, den, pivot_loss = []
+        num, den, pivot_loss = [], [], []
         # torch.tensor([], dtype=torch.float32, device=x.device), \
         #     torch.tensor([], dtype=torch.float32, device=x.device), \
         #         torch.tensor([], dtype=torch.float32, device=x.device)
