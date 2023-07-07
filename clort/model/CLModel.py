@@ -4,7 +4,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from clort.model import (
+from .encoders import (
     CrossObjectEncoder,
     MultiModalEncoder,
     MultiViewEncoder,
