@@ -1,3 +1,4 @@
+from .CLModel import CLModel
 from .ContrastiveLoss import ContrastiveLoss
 from .encoders import (
     CrossObjectEncoder,
@@ -19,4 +20,5 @@ __all__ = ('MemoryBank',
             'PointCloudEncoder',
             'PCLGaussianNoise',
             'PCLRigidTransformNoise',
-            'ContrastiveLoss')
+            'ContrastiveLoss',
+            'CLModel')

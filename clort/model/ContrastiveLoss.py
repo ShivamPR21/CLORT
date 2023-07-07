@@ -25,15 +25,15 @@ def _increase_util(_mean: float, default: float = 0.07) -> float:
 
     return _temp
 
-def gradual_increase_temp(pos: torch.Tensor, neg: torch.Tensor) -> Tuple[float, float]:
+def gradual_increase_temp(pos: torch.Tensor, neg: torch.Tensor) -> Tuple[float | torch.Tensor, float | torch.Tensor]:
     neg = -neg
     _mean_p, _mean_n = pos.mean().item(), neg.mean().item()
-    # _std_p, _std_n = pos.std().item(), neg.std().item()
+    _std_p, _std_n = pos.std().item(), neg.std().item()
     # _max_p, _max_n = pos.max().item(), neg.max().item()
     # _min_p, _min_n = pos.min().item(), neg.min().item()
 
     _temp_p, _temp_n = 0.07, 0.07
-    _temp_p, _temp_n = _increase_util(_mean_p, default=_temp_p), _increase_util(_mean_n, default=_temp_n)
+    _temp_p, _temp_n = _increase_util(_mean_p+_std_p, default=_temp_p), _increase_util(_mean_n+_std_n, default=_temp_n)
 
     return _temp_p, _temp_n
 
@@ -55,7 +55,7 @@ class ContrastiveLoss(nn.Module):
     def __init__(self,
                  temp: float = 0.3,
                  global_contrast: bool = True,
-                 separate_tracks: bool = True,
+                 separation: str | None = None, # 'elements', tracks
                  static_contrast: Tuple[bool, bool] | bool = True,
                  soft_condition: bool = True,
                  global_horizon: bool = True,
@@ -77,7 +77,9 @@ class ContrastiveLoss(nn.Module):
                 raise NotImplementedError(f'Temperature adaptation policy < {self.temp_adapt_policy} > is not implemented.')
 
         self.global_contrast = global_contrast
-        self.separate_tracks = separate_tracks
+        if separation is not None and separation not in ['elements', 'tracks']:
+            raise NotImplementedError(f'Separation method < {separation} > is not implemented. choose one of the following < ["elements", "tracks", "None"] >')
+        self.separation = separation
 
         self.p_stc, self.n_stc = static_contrast if isinstance(static_contrast, tuple) else (static_contrast, static_contrast)
 
@@ -162,14 +164,16 @@ class ContrastiveLoss(nn.Module):
 
         assert(Q is not None)
 
-        num, den, pivot_loss = torch.zeros(len(ut_ids), dtype=torch.float32, device=x.device), \
-            torch.zeros(len(ut_ids), dtype=torch.float32, device=x.device), \
-                torch.zeros(len(ut_ids), dtype=torch.float32, device=x.device)
-        n_pos, n_neg = 0, 0
+        num, den, pivot_loss = []
+        # torch.tensor([], dtype=torch.float32, device=x.device), \
+        #     torch.tensor([], dtype=torch.float32, device=x.device), \
+        #         torch.tensor([], dtype=torch.float32, device=x.device)
+        p_cnt, n_cnt = [], []
+        # n_pos, n_neg = 0, 0
 
         loss: torch.Tensor | None = None
 
-        for i, uid in enumerate(ut_ids):
+        for _i, uid in enumerate(ut_ids):
             x_map = track_idxs == uid
             y_map = y_idxs == uid
 
@@ -177,44 +181,60 @@ class ContrastiveLoss(nn.Module):
             x_pos = x[x_map, :]
             y_pos = y[y_map, :]
 
-            sim_p = self.pos_sim_fxn(x_pos, y_pos).flatten()
+            trth_map = 1 - torch.eye(x_pos.shape[0], dtype=torch.float32, device=x_pos.device, requires_grad=False)
+
+            sim_p = self.pos_sim_fxn(x_pos, y_pos)
             if self.p_stc:
-                idxs = tuple(torch.triu_indices(x_pos.shape[0], x_pos.shape[0], 1))
+                # idxs = tuple(torch.triu_indices(x_pos.shape[0], x_pos.shape[0], 1))
                 sim_p = torch.cat([sim_p,
-                                  self.pos_sim_fxn(x_pos, x_pos)[idxs]]
-                                  )
-            n_pos += sim_p.nelement()
+                                  self.pos_sim_fxn(x_pos, x_pos)*trth_map],
+                                  dim=1) # [x_pos.shape[0], n_pos]
+            p_cnt.append(sim_p.shape[1])
 
             ## Negative similarities
             x_neg = x[~x_map, :]
             y_neg = y[~y_map, :]
 
-            sim_n = self.neg_sim_fxn(x_pos , y_neg).flatten()
+            sim_n = self.neg_sim_fxn(x_pos , y_neg)
             if self.n_stc:
-                idxs = tuple(torch.triu_indices(x_pos.shape[0], x_neg.shape[0], 1))
+                # idxs = tuple(torch.triu_indices(x_pos.shape[0], x_neg.shape[0], 1))
                 sim_n = torch.cat([sim_n,
-                                  self.neg_sim_fxn(x_pos, x_neg)[idxs]]
-                                  )
-            n_neg += sim_n.nelement()
+                                  self.neg_sim_fxn(x_pos, x_neg)*trth_map],
+                                  dim=1)
+            n_cnt.append(sim_n.shape[1])
 
-            temp_p, temp_n = self._get_temp(sim_p, sim_n)
+            if self.temp_adapt_policy is not None:
+                raise NotImplementedError("Temperature adaptation policy is currently defunct, will be re-implemented soon.")
+            temp_p, temp_n = self._get_temp(sim_p, sim_n) #TODO@ShivamPR21: Temperature adaptation defunct
 
             # Positive similarities
-            num[i] = num[i] + (
-                (sim_p/temp_p).exp().sum() if self.sc else (-sim_p).mean()
-                )
+            num.append((sim_p/temp_p).exp().sum(dim=-1) if self.sc else (-sim_p).mean(dim=-1))
             # Hard constraint numerator is added to loss thus needs to mean instead of sum
 
             # Negative similarities
-            den[i] = den[i] + (sim_n/temp_n).exp().sum()
+            den.append((sim_n/temp_n).exp().sum(dim=-1))
 
             # Pivot loss
             if self.pivot > 0.:
-                pivot_loss[i] = ((1 - sim_p).mean().square() + (1 + sim_n).mean().square()).sqrt()
+                pivot_loss.append[((1 - sim_p).mean(dim=-1).square() + (1 + sim_n).mean(dim=-1).square()).sqrt()]
 
-        if self.separate_tracks:
-            loss = self.loss(num, den, pivot_loss if self.pivot > 0. else None).mean()/float(Q)
+        if self.separation == 'tracks':
+            # Separate tracks, but joint loss
+            num = torch.cat([num_.sum() for num_ in num])
+            den = torch.cat([den_.sum() for den_ in den])
+            pivot_loss = torch.cat([pivot_loss_.sum() for pivot_loss_ in pivot_loss])
+            loss = self.loss(num, den, pivot_loss if not isinstance(pivot_loss, list) else None).mean()/float(Q)
+        elif self.separation == 'elements':
+            # Complete separation
+            num, den, pivot_loss = \
+                torch.cat(num), torch.cat(den), \
+                    (torch.cat([pivot_loss]) if len(pivot_loss) > 0. else [])
+            loss = self.loss(num, den, pivot_loss if not isinstance(pivot_loss, list) else None).mean()/float(Q)
         else:
-            loss = self.loss(num.sum(), den.sum(), pivot_loss.sum() if self.pivot > 0. else None)/float(len(ut_ids)*Q)
+            # Complete Loss
+            num, den, pivot_loss = \
+                torch.cat(num), torch.cat(den), \
+                    (torch.cat([pivot_loss]) if len(pivot_loss) > 0. else [])
+            loss = self.loss(num.sum(), den.sum(), pivot_loss.sum() if not isinstance(pivot_loss, list) else None)/float(len(ut_ids)*Q)
 
         return loss
