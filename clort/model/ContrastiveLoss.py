@@ -216,7 +216,7 @@ class ContrastiveLoss(nn.Module):
 
             # Pivot loss
             if self.pivot > 0.:
-                pivot_loss.append[((1 - sim_p).mean(dim=-1).square() + (1 + sim_n).mean(dim=-1).square()).sqrt()]
+                pivot_loss.append(((1 - sim_p).mean(dim=-1).square() + (1 + sim_n).mean(dim=-1).square()).sqrt())
 
         if self.separation == 'tracks':
             # Separate tracks, but joint loss
