@@ -109,8 +109,8 @@ class ContrastiveLoss(nn.Module):
 
     def _get_temp(self, pos: torch.Tensor, neg: torch.Tensor) -> Tuple[float, float]:
         temp_p, temp_n = self.temp, self.temp
-        if self.temp_adapt_policy is not None:
-            temp_p, temp_n = self.temp_adapt_policy(pos, neg) # type: ignore
+        # if self.temp_adapt_policy is not None:
+        #     temp_p, temp_n = self.temp_adapt_policy(pos, neg) # type: ignore
 
         return temp_p, temp_n # type: ignore
 
