@@ -104,8 +104,8 @@ class MultiViewEncoder(nn.Module):
         self.xo7 = MinimalCrossObjectEncoder(512, 512, k = 10, norm_layer=norm_1d,
                                             activation_layer=activation_layer, red_factor=2) if self.enable_xo else None
 
-        self.linear8 = LinearNormActivation(512+128*3, 128, bias=True, norm_layer=norm_1d, activation_layer=activation_layer)
-        self.projection_head = LinearNormActivation(128, self.out_dim, bias=True, norm_layer=None, activation_layer=None)
+        self.linear8 = LinearNormActivation(512+128*3, 512, bias=True, norm_layer=norm_1d, activation_layer=activation_layer)
+        self.projection_head = LinearNormActivation(512, self.out_dim, bias=True, norm_layer=None, activation_layer=None)
 
         self.max_pool = nn.AdaptiveMaxPool2d((1, 1))
 
