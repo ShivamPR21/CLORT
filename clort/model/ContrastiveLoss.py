@@ -146,23 +146,15 @@ class ContrastiveLoss(nn.Module):
 
         ut_ids = track_idxs.unique()
 
-        y_idxs : torch.Tensor | None = None
-        Q : int | None = None
+        # y_idxs : torch.Tensor | None = None
+        # Q : int | None = None
 
+        n, Q, _ = y.size()
+        y_idxs = torch.arange(n, dtype=torch.int32).repeat(Q)
+        local_contrast_map : torch.Tensor | float = 1.
         if self.global_contrast:
-            n, Q, _ = y.size()
-            y = y.flatten(0, 1)
-
-            y_idxs = torch.arange(n, dtype=torch.int32).repeat(Q)
-        else:
-            y = y[ut_ids, :, :]
-
-            _, Q, _ = y.size()
-            y = y.flatten(0, 1)
-
-            y_idxs = ut_ids.repeat(Q)
-
-        assert(Q is not None)
+            local_contrast_map = torch.zeros(n, dtype=torch.bool)
+            local_contrast_map[ut_ids] = True
 
         num, den, pivot_loss = [], [], []
         # torch.tensor([], dtype=torch.float32, device=x.device), \
@@ -179,7 +171,7 @@ class ContrastiveLoss(nn.Module):
 
             ## Positive similarities
             x_pos = x[x_map, :]
-            y_pos = y[y_map, :]
+            y_pos = y[y_map, :].flatten(0, 1)
 
             trth_map = 1 - torch.eye(x_pos.shape[0], dtype=torch.float32, device=x_pos.device, requires_grad=False)
 
@@ -193,7 +185,7 @@ class ContrastiveLoss(nn.Module):
 
             ## Negative similarities
             x_neg = x[~x_map, :]
-            y_neg = y[~y_map, :]
+            y_neg = y[(~y_map) * local_contrast_map, :].flatten(0, 1)
 
             sim_n = self.neg_sim_fxn(x_pos , y_neg)
             if self.n_stc:
@@ -229,12 +221,12 @@ class ContrastiveLoss(nn.Module):
             num, den, pivot_loss = \
                 torch.cat(num), torch.cat(den), \
                     (torch.cat([pivot_loss]) if len(pivot_loss) > 0. else [])
-            loss = self.loss(num, den, pivot_loss if not isinstance(pivot_loss, list) else None).mean()
+            loss = self.loss(num, den, pivot_loss if not isinstance(pivot_loss, list) else None).mean()/float(Q)
         else:
             # Complete Loss
             num, den, pivot_loss = \
                 torch.cat(num), torch.cat(den), \
                     (torch.cat([pivot_loss]) if len(pivot_loss) > 0. else [])
-            loss = self.loss(num.sum(), den.sum(), pivot_loss.sum() if not isinstance(pivot_loss, list) else None)/float(len(ut_ids))
+            loss = self.loss(num.sum(), den.sum(), pivot_loss.sum() if not isinstance(pivot_loss, list) else None)/float(len(ut_ids)*Q)
 
         return loss
