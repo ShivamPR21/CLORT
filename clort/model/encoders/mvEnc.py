@@ -86,17 +86,17 @@ class MultiViewEncoder(nn.Module):
         self.res5 = ConvInvertedResidualBlock2d(128, 2, 256, kernel_size=3, stride=1,
                                                 norm_layer=norm_2d, activation_layer=activation_layer)
 
-        self.res6 = ConvInvertedResidualBlock2d(256, 2, 128, kernel_size=3, stride=2,
+        self.res6 = ConvInvertedResidualBlock2d(256, 2, 256, kernel_size=3, stride=2,
                                                 norm_layer=norm_2d, activation_layer=activation_layer)
 
-        self.res6_proj = ConvNormActivation2d(128, 128, kernel_size=3, stride=2,
+        self.res6_proj = ConvNormActivation2d(256, 256, kernel_size=3, stride=2,
                                                bias=False, norm_layer=None, activation_layer=None)
-        self.xv6 = CrossViewAttention(128, 128, residual=True, dynamic_batching=True,
+        self.xv6 = CrossViewAttention(256, 256, residual=True, dynamic_batching=True,
                                       norm_layer=norm_1d, activation_layer=activation_layer)
-        self.xo6 = MinimalCrossObjectEncoder(128, 128, k = 10, norm_layer=norm_1d,
+        self.xo6 = MinimalCrossObjectEncoder(256, 256, k = 10, norm_layer=norm_1d,
                                             activation_layer=activation_layer, red_factor=2) if self.enable_xo else None
 
-        self.res7 = ConvResidualBlock2d(128, 512, kernel_size=3, stride=2,
+        self.res7 = ConvResidualBlock2d(256, 512, kernel_size=3, stride=2,
                                          norm_layer=norm_2d, activation_layer=activation_layer)
 
         self.xv7 = CrossViewAttention(512, 512, residual=True, dynamic_batching=True,
@@ -104,7 +104,7 @@ class MultiViewEncoder(nn.Module):
         self.xo7 = MinimalCrossObjectEncoder(512, 512, k = 10, norm_layer=norm_1d,
                                             activation_layer=activation_layer, red_factor=2) if self.enable_xo else None
 
-        self.linear8 = LinearNormActivation(512+128*3, 512, bias=True, norm_layer=norm_1d, activation_layer=activation_layer)
+        self.linear8 = LinearNormActivation(512+256*2, 512, bias=True, norm_layer=norm_1d, activation_layer=activation_layer)
         self.projection_head = LinearNormActivation(512, self.out_dim, bias=True, norm_layer=None, activation_layer=None)
 
         self.max_pool = nn.AdaptiveMaxPool2d((1, 1))
