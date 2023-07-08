@@ -64,11 +64,13 @@ class ContrastiveLoss(nn.Module):
                  sim_fxn: Callable[[torch.Tensor, torch.Tensor], torch.Tensor] | None = None,
                  temperature_adaptation_policy: Callable[[torch.Tensor, torch.Tensor],
                                                          Tuple[float, float]] | str | None = None, # gradual_increase
+                 temperature_increase_coeff: float = 0.01,
                  pivot: float = 0.) -> None:
         super().__init__()
 
         self.temp = float(temp)
         self.temp_adapt_policy = temperature_adaptation_policy
+        self.t_coeff = temperature_increase_coeff
 
         if isinstance(self.temp_adapt_policy, str):
             if self.temp_adapt_policy == 'gradual_increase':
@@ -101,6 +103,9 @@ class ContrastiveLoss(nn.Module):
 
         self.pos_sim_fxn = diff_similarity if not self.sc else self.neg_sim_fxn
         self.pivot = pivot
+
+    def _temp_step(self):
+        self.temp += self.t_coeff
 
     def _get_temp(self, pos: torch.Tensor, neg: torch.Tensor) -> Tuple[float, float]:
         temp_p, temp_n = self.temp, self.temp

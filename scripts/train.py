@@ -221,7 +221,7 @@ def main(cfg: DictConfig):
                         separation=cfg.loss.separation, static_contrast=cfg.loss.static_contrast,
                         soft_condition=cfg.loss.soft_condition, global_horizon=cfg.loss.global_horizon,
                         sim_type=cfg.loss.sim_type, temperature_adaptation_policy=cfg.loss.temperature_adaptation_policy,
-                        pivot=cfg.loss.pivot)
+                        temperature_increase_coeff=0.01, pivot=cfg.loss.pivot)
 
     mb_infer = None
 
@@ -236,7 +236,7 @@ def main(cfg: DictConfig):
                                separation=cfg.loss.separation, static_contrast=cfg.loss.static_contrast,
                                soft_condition=cfg.loss.soft_condition, global_horizon=cfg.loss.global_horizon,
                                sim_type=cfg.loss.sim_type, temperature_adaptation_policy=cfg.loss.temperature_adaptation_policy,
-                               pivot=cfg.loss.pivot)
+                               temperature_increase_coeff=0.01, pivot=cfg.loss.pivot)
 
     # Initialize optimizer
     optimizer = torch.optim.AdamW(
@@ -287,6 +287,8 @@ def main(cfg: DictConfig):
         ### Validation loss
         ###################################################################################
         lr_scheduler.step() # Step Learning rate
+        cl._temp_step()
+        cl_infer._temp_step()
 
         model_info = {
             'EPOCH': epoch,
