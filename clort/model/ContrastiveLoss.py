@@ -223,18 +223,18 @@ class ContrastiveLoss(nn.Module):
             num = torch.cat([num_.sum() for num_ in num])
             den = torch.cat([den_.sum() for den_ in den])
             pivot_loss = torch.cat([pivot_loss_.sum() for pivot_loss_ in pivot_loss])
-            loss = self.loss(num, den, pivot_loss if not isinstance(pivot_loss, list) else None).mean()/float(Q)
+            loss = self.loss(num, den, pivot_loss if not isinstance(pivot_loss, list) else None).mean()
         elif self.separation == 'elements':
             # Complete separation
             num, den, pivot_loss = \
                 torch.cat(num), torch.cat(den), \
                     (torch.cat([pivot_loss]) if len(pivot_loss) > 0. else [])
-            loss = self.loss(num, den, pivot_loss if not isinstance(pivot_loss, list) else None).mean()/float(Q)
+            loss = self.loss(num, den, pivot_loss if not isinstance(pivot_loss, list) else None).mean()
         else:
             # Complete Loss
             num, den, pivot_loss = \
                 torch.cat(num), torch.cat(den), \
                     (torch.cat([pivot_loss]) if len(pivot_loss) > 0. else [])
-            loss = self.loss(num.sum(), den.sum(), pivot_loss.sum() if not isinstance(pivot_loss, list) else None)/float(len(ut_ids)*Q)
+            loss = self.loss(num.sum(), den.sum(), pivot_loss.sum() if not isinstance(pivot_loss, list) else None)/float(len(ut_ids))
 
         return loss
