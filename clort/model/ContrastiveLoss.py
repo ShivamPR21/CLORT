@@ -176,11 +176,11 @@ class ContrastiveLoss(nn.Module):
 
             ## Positive similarities
             x_pos = x[x_map, :]
-            y_pos = y[y_map, :].flatten(0, 1)
+            y_pos = y[y_map, :, :].flatten(0, 1)
 
             trth_map = 1 - torch.eye(x_pos.shape[0], dtype=torch.float32, device=x_pos.device, requires_grad=False)
 
-            sim_p = self.pos_sim_fxn(x_pos, y_pos)
+            sim_p = self.pos_sim_fxn(x_pos, y_pos).min(dim=1, keepdim=True)
             if self.p_stc:
                 # idxs = tuple(torch.triu_indices(x_pos.shape[0], x_pos.shape[0], 1))
                 sim_p = torch.cat([sim_p,
