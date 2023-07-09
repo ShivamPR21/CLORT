@@ -1,5 +1,5 @@
 # Loss Function Information
-temperature: 0.07
+temperature: 0.05
 static_contrast: True
 soft_condition: True
 global_contrast: True

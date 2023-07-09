@@ -224,22 +224,21 @@ class ContrastiveLoss(nn.Module):
             num = torch.cat([num_.mean() for num_ in num])
             den = torch.cat([den_.sum() for den_ in den])
             pivot_loss = torch.cat([pivot_loss_.sum() for pivot_loss_ in pivot_loss]) if len(pivot_loss) > 0. else None
-
+            # Negative Counts for loss normalization
             n_cnt = np.concatenate([n_cnt_.sum() for n_cnt_ in n_cnt]).reshape(-1, )
-
         elif self.separation == 'elements':
             # Complete separation
             num, den, pivot_loss = \
                 torch.cat(num), torch.cat(den), \
                     (torch.cat(pivot_loss) if len(pivot_loss) > 0. else None)
-
+            # Negative Counts for loss normalization
             n_cnt = np.concatenate(n_cnt).reshape(-1, )
         else:
             # Complete Loss
             num, den, pivot_loss = \
                 torch.cat(num).mean(), torch.cat(den).sum(), \
                     (torch.cat(pivot_loss).sum() if len(pivot_loss) > 0. else None)
-
+            # Negative Counts for loss normalization
             n_cnt = np.concatenate(n_cnt).sum().reshape(-1, )
 
         loss_normalization_factor = (np.log(1+n_cnt*ext_val/Q)/np.log(1+n_cnt*ext_val)).mean()

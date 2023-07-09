@@ -45,6 +45,7 @@ class MemoryBank(nn.Module):
             for i in range(self.n_tracks):
                 truth_idxs = (torch.arange(i, i+self.init_density, dtype=torch.int32)*self.init_dilation)%self.N
                 memory[i, :, truth_idxs] = 1. # Orthogonal uniform initialization
+            memory[self.n_tracks//2:, :, :] *= -1.
             memory /= np.sqrt(self.init_density)
         elif self.init == 'orthogonal.distributed':
             memory = torch.zeros((self.n_tracks, self.Q, self.N), dtype=torch.float32, device=self.device) # uniform initialization
@@ -53,6 +54,7 @@ class MemoryBank(nn.Module):
                     truth_idxs = (torch.arange(i, i+self.init_density, dtype=torch.int32)*self.init_dilation+\
                                   q*self.init_dilation)%self.N
                     memory[i, q, truth_idxs] = 1. # Orthogonal distributed initialization
+            memory[self.n_tracks//2:, :, :] *= -1.
             memory /= np.sqrt(self.init_density)
         else:
             raise NotImplementedError(f'The initialization method {self.init} isn\'t implemented')
