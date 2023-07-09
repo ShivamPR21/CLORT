@@ -216,7 +216,7 @@ class ContrastiveLoss(nn.Module):
 
         # Loss normalization factor
         _, temp_n = self._get_temp()
-        ext_val = np.exp(-2./temp_n)
+        ext_val = np.exp(-2./temp_n, dtype=np.float32)
         loss_normalization_factor: float = 1.
 
         if self.separation == 'tracks':
@@ -241,7 +241,8 @@ class ContrastiveLoss(nn.Module):
             # Negative Counts for loss normalization
             n_cnt = np.concatenate(n_cnt).sum().reshape(-1, )
 
-        loss_normalization_factor = (np.log(1+n_cnt*ext_val/Q)/np.log(1+n_cnt*ext_val)).mean()
+        n_cnt = n_cnt.astype(np.float32)
+        loss_normalization_factor = np.true_divide(np.log(1+ext_val*n_cnt/float(Q)), np.log(1+ext_val*n_cnt), dtype=np.float32).mean()
 
         loss = self.loss(num, den, pivot_loss).mean() * loss_normalization_factor
 
