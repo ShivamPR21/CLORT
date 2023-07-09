@@ -157,7 +157,7 @@ class ContrastiveLoss(nn.Module):
 
         n, Q, _ = y.size()
         y_idxs = torch.arange(n, dtype=torch.int32)
-        local_contrast_map : torch.Tensor | float = 1.
+        local_contrast_map : torch.Tensor = torch.ones(n, dtype=torch.bool)
         if not self.global_contrast:
             local_contrast_map = torch.zeros(n, dtype=torch.bool)
             local_contrast_map[ut_ids] = True
