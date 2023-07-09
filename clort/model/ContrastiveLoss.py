@@ -70,7 +70,6 @@ class ContrastiveLoss(nn.Module):
         super().__init__()
 
         self.temp = float(temp)
-        self.eps = 1e-9
 
         self.temp_adapt_policy = temperature_adaptation_policy
         self.t_coeff = temperature_increase_coeff
