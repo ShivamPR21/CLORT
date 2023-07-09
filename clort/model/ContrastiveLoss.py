@@ -225,7 +225,7 @@ class ContrastiveLoss(nn.Module):
             den = torch.cat([den_.sum() for den_ in den])
             pivot_loss = torch.cat([pivot_loss_.sum() for pivot_loss_ in pivot_loss]) if len(pivot_loss) > 0. else None
 
-            n_cnt = np.concatenate([n_cnt_.sum() for n_cnt_ in n_cnt])
+            n_cnt = np.concatenate([n_cnt_.sum() for n_cnt_ in n_cnt]).reshape(-1, )
 
         elif self.separation == 'elements':
             # Complete separation
@@ -233,16 +233,17 @@ class ContrastiveLoss(nn.Module):
                 torch.cat(num), torch.cat(den), \
                     (torch.cat(pivot_loss) if len(pivot_loss) > 0. else None)
 
-            n_cnt = np.concatenate(n_cnt)
+            n_cnt = np.concatenate(n_cnt).reshape(-1, )
         else:
             # Complete Loss
             num, den, pivot_loss = \
                 torch.cat(num).mean(), torch.cat(den).sum(), \
                     (torch.cat(pivot_loss).sum() if len(pivot_loss) > 0. else None)
 
-            n_cnt = np.concatenate(n_cnt).sum(keepdims=True)
+            n_cnt = np.concatenate(n_cnt).sum().reshape(-1, )
 
         loss_normalization_factor = (np.log(1+n_cnt*ext_val/Q)/np.log(1+n_cnt*ext_val)).mean()
-        loss = self.loss(num, den, pivot_loss).mean()*loss_normalization_factor
+
+        loss = self.loss(num, den, pivot_loss).mean() * loss_normalization_factor
 
         return loss
