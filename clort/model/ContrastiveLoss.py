@@ -158,7 +158,7 @@ class ContrastiveLoss(nn.Module):
         n, Q, _ = y.size()
         y_idxs = torch.arange(n, dtype=torch.int32)
         local_contrast_map : torch.Tensor | float = 1.
-        if self.global_contrast:
+        if not self.global_contrast:
             local_contrast_map = torch.zeros(n, dtype=torch.bool)
             local_contrast_map[ut_ids] = True
 
@@ -242,7 +242,7 @@ class ContrastiveLoss(nn.Module):
             n_cnt = np.concatenate(n_cnt).sum().reshape(-1, )
 
         n_cnt = n_cnt.astype(np.float32)
-        loss_normalization_factor = np.true_divide(np.log(1+ext_val*n_cnt/float(Q)), np.log(1+ext_val*n_cnt), dtype=np.float32).mean()
+        loss_normalization_factor = np.true_divide(np.log(1+ext_val*n_cnt/float(Q)), np.log(1+ext_val*n_cnt)+1e-18, dtype=np.float32).mean()
 
         loss = self.loss(num, den, pivot_loss).mean() * loss_normalization_factor
 
