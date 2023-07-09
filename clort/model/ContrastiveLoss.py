@@ -70,6 +70,8 @@ class ContrastiveLoss(nn.Module):
         super().__init__()
 
         self.temp = float(temp)
+        self.eps = 1e-9
+
         self.temp_adapt_policy = temperature_adaptation_policy
         self.t_coeff = temperature_increase_coeff
 
@@ -166,8 +168,6 @@ class ContrastiveLoss(nn.Module):
         pivot_loss: List[torch.Tensor] | torch.Tensor | None = []
         _p_cnt, n_cnt = [], []
 
-        loss: torch.Tensor | None = None
-
         for _i, uid in enumerate(ut_ids):
             x_map = track_idxs == uid
             y_map = y_idxs == uid
@@ -215,9 +215,6 @@ class ContrastiveLoss(nn.Module):
                 pivot_loss.append(((1 - sim_p).mean(dim=-1).square() + (1 + sim_n).mean(dim=-1).square()).sqrt())
 
         # Loss normalization factor
-        _, temp_n = self._get_temp()
-        ext_val = np.exp(-2./temp_n, dtype=np.float32)
-        loss_normalization_factor: float = 1.
 
         if self.separation == 'tracks':
             # Separate tracks, but joint loss
@@ -241,8 +238,12 @@ class ContrastiveLoss(nn.Module):
             # Negative Counts for loss normalization
             n_cnt = np.concatenate(n_cnt).sum().reshape(-1, )
 
-        n_cnt = n_cnt.astype(np.float32)
-        loss_normalization_factor = np.true_divide(np.log(1+ext_val*n_cnt/float(Q)), np.log(1+ext_val*n_cnt)+1e-18, dtype=np.float32).mean()
+        n_cnt = torch.tensor(n_cnt, dtype=torch.float32)
+        _, temp_n = self._get_temp()
+        ext_val = ((den.max() - num.min()).detach()/temp_n).exp()
+        loss_normalization_factor = ((Q+ext_val*n_cnt).log() - np.log(Q) + self.eps)/((1.+ext_val*n_cnt).log() + self.eps)
+
+        assert(loss_normalization_factor >= 0.)
 
         loss = self.loss(num, den, pivot_loss).mean() * loss_normalization_factor
 
