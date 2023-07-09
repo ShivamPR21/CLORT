@@ -240,7 +240,7 @@ class ContrastiveLoss(nn.Module):
 
         n_cnt = torch.tensor(n_cnt, dtype=torch.float32)
         _, temp_n = self._get_temp()
-        ext_val = ((den.max() - num.min()).detach()/temp_n).exp()
+        ext_val = ((den - num.min()).detach()/temp_n).exp()
         loss_normalization_factor = ((Q+ext_val*n_cnt).log() - np.log(Q) + self.eps)/((1.+ext_val*n_cnt).log() + self.eps)
 
         assert(loss_normalization_factor >= 0.)
