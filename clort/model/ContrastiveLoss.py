@@ -214,8 +214,6 @@ class ContrastiveLoss(nn.Module):
             if self.pivot > 0.:
                 pivot_loss.append(((1 - sim_p).mean(dim=-1).square() + (1 + sim_n).mean(dim=-1).square()).sqrt())
 
-        # Loss normalization factor
-
         if self.separation == 'tracks':
             # Separate tracks, but joint loss
             num = torch.cat([num_.mean() for num_ in num])
@@ -238,13 +236,6 @@ class ContrastiveLoss(nn.Module):
             # Negative Counts for loss normalization
             n_cnt = np.concatenate(n_cnt).sum().reshape(-1, )
 
-        n_cnt = torch.tensor(n_cnt, dtype=torch.float32, device=x.device)
-        _, temp_n = self._get_temp()
-        ext_val = ((den - num.min()).detach()/temp_n).exp()
-        loss_normalization_factor = (((Q+ext_val*n_cnt).log() - np.log(Q) + self.eps)/((1.+ext_val*n_cnt).log() + self.eps)).mean()
-
-        assert(loss_normalization_factor >= 0.)
-
-        loss = self.loss(num, den, pivot_loss).mean() * loss_normalization_factor
+        loss = self.loss(num, den, pivot_loss).mean()
 
         return loss
