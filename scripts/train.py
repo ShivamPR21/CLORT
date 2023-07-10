@@ -272,9 +272,18 @@ def main(cfg: DictConfig):
 
     print(f'{len(train_dl) = } \t {len(val_dl) = }')
 
+    # Restore temperature parameters
+    for _ in range(last_epoch):
+        cl._temp_step()
+        cl_infer._temp_step()
+        print(f'Restored temperature parameter: {cl.temp = } \t {cl_infer.temp = }')
+
     for epoch in range(last_epoch, n_epochs):
         model_fname = f'model_{epoch+1}.pth'
         model_path = os.path.join(run.dir, model_fname)
+
+        wandb.log({'Training Loss Temperature': cl.temp,
+                   'Validation Loss Temperature': cl_infer.temp})
 
         _train_loss = train(epoch, enc, train_dl, optimizer,
                             cl, mb, log_step=cfg.optimizer.log_freq, wb=True, model_device=cfg.model.device, reset=cfg.mb.reset)
@@ -289,9 +298,6 @@ def main(cfg: DictConfig):
         lr_scheduler.step() # Step Learning rate
         cl._temp_step()
         cl_infer._temp_step()
-
-        wandb.log({'Training Loss Temperature': cl.temp,
-                   'Validation Loss Temperature': cl_infer.temp})
 
         model_info = {
             'EPOCH': epoch,

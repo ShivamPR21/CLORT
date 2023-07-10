@@ -55,7 +55,7 @@ class ContrastiveLoss(nn.Module):
     def __init__(self,
                  temp: float = 0.3,
                  global_contrast: bool = True,
-                 separation: str | None = None, # 'elements', tracks
+                 separation: str = 'elements', # elements, tracks, dense
                 #  pos_norm: str = 'mean', # 'max', 'min', 'max.std' #TODO@ShivamPR21: Implement different positive normalization method
                  static_contrast: Tuple[bool, bool] | bool = True,
                  soft_condition: bool = True,
@@ -81,8 +81,8 @@ class ContrastiveLoss(nn.Module):
                 raise NotImplementedError(f'Temperature adaptation policy < {self.temp_adapt_policy} > is not implemented.')
 
         self.global_contrast = global_contrast
-        if separation is not None and separation not in ['elements', 'tracks']:
-            raise NotImplementedError(f'Separation method < {separation} > is not implemented. choose one of the following < ["elements", "tracks", "None"] >')
+        if separation not in ['elements', 'tracks', 'dense']:
+            raise NotImplementedError(f'Separation method < {separation} > is not implemented. choose one of the following < ["elements", "tracks", "dense"] >')
         self.separation = separation
 
         self.p_stc, self.n_stc = static_contrast if isinstance(static_contrast, tuple) else (static_contrast, static_contrast)
@@ -227,13 +227,15 @@ class ContrastiveLoss(nn.Module):
                     (torch.cat(pivot_loss) if len(pivot_loss) > 0. else None)
             # Negative Counts for loss normalization
             n_cnt = np.concatenate(n_cnt).reshape(-1, )
-        else:
+        elif self.separation == 'dense':
             # Complete Loss
             num, den, pivot_loss = \
                 torch.cat(num).mean(), torch.cat(den).sum(), \
                     (torch.cat(pivot_loss).sum() if len(pivot_loss) > 0. else None)
             # Negative Counts for loss normalization
             n_cnt = np.concatenate(n_cnt).sum().reshape(-1, )
+        else:
+            raise NotImplementedError(f'Separation method < {self.separation} > is not implemented. choose one of the following < ["elements", "tracks", "dense"] >')
 
         loss = self.loss(num, den, pivot_loss).mean()
 

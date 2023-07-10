@@ -3,7 +3,7 @@ temperature: 0.05
 static_contrast: True
 soft_condition: True
 global_contrast: True
-separation: "dense"
+separation: "tracks"
 global_horizon: True
 sim_type: "dot"
 temperature_adaptation_policy: null # "gradual_increase"
