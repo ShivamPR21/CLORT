@@ -1,4 +1,4 @@
-from typing import Tuple, Union
+from typing import Tuple
 
 import numpy as np
 import torch
@@ -8,7 +8,7 @@ import torch.nn as nn
 class MemoryBank(nn.Module):
 
     def __init__(self, n_tracks: int, N: int, Q: int,
-                 alpha: Union[np.ndarray, torch.Tensor],
+                 alpha: np.ndarray | torch.Tensor,
                  eps: float = 1e-9, device: torch.device | str = 'cpu',
                  init: str = 'zeros',
                  init_dilation: int = 1,
