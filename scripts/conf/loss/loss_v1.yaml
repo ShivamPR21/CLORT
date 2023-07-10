@@ -1,0 +1,11 @@
+# Loss Function Information
+temperature: 0.05
+static_contrast: True
+soft_condition: True
+global_contrast: True
+separation: "elements"
+global_horizon: True
+sim_type: "dot"
+temperature_adaptation_policy: null # "gradual_increase"
+t_inc_coeff: 0.0
+pivot: 0.0

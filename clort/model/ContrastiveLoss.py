@@ -158,10 +158,10 @@ class ContrastiveLoss(nn.Module):
 
         n, Q, _ = y.size()
         y_idxs = torch.arange(n, dtype=torch.int32)
-        local_contrast_map : torch.Tensor = torch.ones(n, dtype=torch.bool)
-        if not self.global_contrast:
-            local_contrast_map = torch.zeros(n, dtype=torch.bool)
-            local_contrast_map[ut_ids] = True
+        local_contrast_map : torch.Tensor = torch.ones(n, dtype=torch.bool) # All true
+        if not self.global_contrast: # Local Contrast
+            local_contrast_map = torch.zeros(n, dtype=torch.bool) # All False
+            local_contrast_map[ut_ids] = True # Except current track_ids
 
         num, den, = [], []
         pivot_loss: List[torch.Tensor] | torch.Tensor | None = []
