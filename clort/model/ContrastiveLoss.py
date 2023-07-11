@@ -183,7 +183,7 @@ class ContrastiveLoss(nn.Module):
                 sim_p = torch.cat([sim_p,
                                   (self.pos_sim_fxn(x_pos, x_pos)*trth_map).min(dim=1, keepdim=True).values],
                                   dim=1) # [x_pos.shape[0], n_pos]
-            sim_p = sim_p.mean(dim=1, keepdim=False)
+            sim_p = sim_p.min(dim=1, keepdim=False).values
             # p_cnt.append(sim_p.shape[1])
 
             ## Negative similarities
