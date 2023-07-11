@@ -1,5 +1,5 @@
 import os
-from typing import Any, Dict, Iterator, List, Optional, Sized, Tuple, Type
+from typing import Any, Dict, Iterator, List, Tuple, Type
 
 import h5py
 import numpy as np
@@ -129,7 +129,7 @@ class ArgoCL(Dataset):
 
             sz = curr_sz
 
-        idx = np.random.randint(0, len(pc), size=sz, dtype=int)
+        idx = np.random.choice(np.arange(0, len(pc), dtype=int), size=sz, replace=sz > len(pc))
 
         return pc[idx, :]
 
