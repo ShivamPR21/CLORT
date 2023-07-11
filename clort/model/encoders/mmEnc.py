@@ -3,7 +3,7 @@ from typing import Callable
 import numpy as np
 import torch
 import torch.nn as nn
-from moduleZoo.attention import SelfAttentionLinear
+from moduleZoo.attention import MultiHeadSelfAttentionLinear
 from moduleZoo.dense import LinearNormActivation
 
 from . import MinimalCrossObjectEncoder
@@ -19,21 +19,21 @@ class MultiModalEncoder(nn.Module):
 
         self.eps = 1e-9
         self.enable_xo = enable_xo
+        self.udim = max(mv_in_dim, pc_in_dim)
 
-        self.gat_mv1 = SelfAttentionLinear(mv_in_dim, 128,
-                                            residual=True)
+        self.mv_linear = LinearNormActivation(mv_in_dim, self.udim, norm_layer=norm_layer, activation_layer=activation_layer)
+        self.pc_linear = LinearNormActivation(pc_in_dim, self.udim, norm_layer=norm_layer, activation_layer=activation_layer)
 
+        self.gat_1 = MultiHeadSelfAttentionLinear(self.udim, None, n_heads=2, residual=True)
 
-        self.gat_pc1 = SelfAttentionLinear(pc_in_dim, 128,
-                                            residual=True)
-
-        self.combined_gat = SelfAttentionLinear(128, 128,
-                                                residual=True)
-
-        self.xo_gat = MinimalCrossObjectEncoder(128, 128, k=10,
+        self.xo_gat = MinimalCrossObjectEncoder(self.udim, self.udim, k=10,
                                                 norm_layer=norm_layer, activation_layer=activation_layer) if self.enable_xo else None
 
-        self.projection_head = LinearNormActivation(128, out_dim, bias=True,
+        self.projection_head1 = LinearNormActivation(self.udim + (self.udim if self.enable_xo else 0), self.udim, bias=True,
+                                                    norm_layer=norm_layer,
+                                                    activation_layer=activation_layer)
+
+        self.projection_head2 = LinearNormActivation(self.udim, out_dim, bias=True,
                                                     norm_layer=None,
                                                     activation_layer=None)
 
@@ -41,19 +41,13 @@ class MultiModalEncoder(nn.Module):
         # mv_enc -> [n_obj, N_mv]
         # pc_enc -> [n_obj, N_pc]
 
-        mv_enc, pc_enc = mv_enc.unsqueeze(dim=1), pc_enc.unsqueeze(dim=1)
-        q_mv, k_mv, v_mv = self.gat_mv1.extract_qkv(mv_enc, mv_enc) # [n_obj, 1, q/k/v]
-        q_pc, k_pc, v_pc = self.gat_pc1.extract_qkv(pc_enc, pc_enc) # [n_obj, 1, q/k/v]
+        mv_enc, pc_enc = self.mv_linear(mv_enc).unsqueeze(dim=1), self.pc_linear(pc_enc).unsqueeze(dim=1)
+        enc = self.gat_1(torch.cat([mv_enc, pc_enc], dim=1)).flatten(1, 2).max(dim=1).values
 
-        res_mv = self.gat_mv1(mv_enc, q_mv.repeat(1, 2, 1), k_mv.repeat(1, 2, 1), torch.cat([v_mv, v_pc], dim=1)).squeeze(dim=1).max(dim=1, keepdims=True).values
+        enc = torch.cat([enc, self.xo_gat(enc, n_nodes)], dim=-1) if (self.xo_gat is not None and n_nodes is not None) else enc
 
-        res_pc = self.gat_pc1(pc_enc, q_pc.repeat(1, 2, 1), k_pc.repeat(1, 2, 1), torch.cat([v_mv, v_pc], dim=1)).squeeze(dim=1).max(dim=1, keepdims=True).values
+        enc = self.projection_head1(enc)
+        enc = self.projection_head2(enc)
 
-        res = self.combined_gat(torch.cat([res_mv, res_pc], dim=1)).squeeze(dim=1).max(dim=1).values
-
-        res = self.xo_gat(res, n_nodes) if (self.xo_gat is not None and n_nodes is not None) else res
-
-        res = self.projection_head(res)
-
-        res = res/(res.norm(dim=1, keepdim=True) + self.eps)
-        return res
+        enc = enc/(enc.norm(dim=1, keepdim=True) + self.eps)
+        return enc
