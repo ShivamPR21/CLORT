@@ -181,7 +181,7 @@ class ContrastiveLoss(nn.Module):
             if self.p_stc:
                 # idxs = tuple(torch.triu_indices(x_pos.shape[0], x_pos.shape[0], 1))
                 sim_p = torch.cat([sim_p,
-                                  (self.pos_sim_fxn(x_pos, x_pos)*trth_map).min(dim=1, keepdim=True).values],
+                                  (self.pos_sim_fxn(x_pos, x_pos).detach()*trth_map).min(dim=1, keepdim=True).values],
                                   dim=1) # [x_pos.shape[0], n_pos]
             sim_p = sim_p.min(dim=1, keepdim=False).values
             # p_cnt.append(sim_p.shape[1])
@@ -194,7 +194,7 @@ class ContrastiveLoss(nn.Module):
             if self.n_stc:
                 # idxs = tuple(torch.triu_indices(x_pos.shape[0], x_neg.shape[0], 1))
                 sim_n = torch.cat([sim_n,
-                                  self.neg_sim_fxn(x_pos, x_neg)],
+                                  self.neg_sim_fxn(x_pos, x_neg).detach()],
                                   dim=1)
             n_cnt.append(np.array([sim_n.shape[1]]*sim_n.shape[0]))
 
