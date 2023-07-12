@@ -68,7 +68,7 @@ class CLModel(nn.Module):
         if self.mv_norm is not None and self.pc_norm is not None and self.mm_act is not None:
             mv_e, pc_e = self.mm_act(self.mv_norm(mv_e)), self.mm_act(self.pc_norm(pc_e))
 
-        mm_e = self.mm_enc(mv_e, pc_e) if self.mm_enc is not None else None
+        mm_e = self.mm_enc(mv_e, pc_e, frame_sz) if self.mm_enc is not None else None
 
         if self.mm_norm is not None and self.mmc_act is not None:
             mm_e = self.mmc_act(self.mm_norm(mm_e))

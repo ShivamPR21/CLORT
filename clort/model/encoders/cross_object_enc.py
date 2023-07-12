@@ -73,7 +73,7 @@ class CrossObjectEncoder(nn.Module):
     def forward(self, obj_encs: torch.Tensor, n_nodes: np.ndarray) -> torch.Tensor:
         obj_encs1 = self.xo1(obj_encs, n_nodes) #self.conv1(self.gat1(obj_encs, n_nodes), n_nodes)
         obj_encs2 = self.xo2(obj_encs1, n_nodes) #self.conv2(self.gat2(obj_encs1, n_nodes), n_nodes)
-        obj_encs3 = self.xo2(obj_encs2, n_nodes) #self.conv3(self.gat3(obj_encs2, n_nodes), n_nodes)
+        obj_encs3 = self.xo3(obj_encs2, n_nodes) #self.conv3(self.gat3(obj_encs2, n_nodes), n_nodes)
 
         obj_encs = torch.cat([obj_encs1, obj_encs2, obj_encs3], dim=1)
 
