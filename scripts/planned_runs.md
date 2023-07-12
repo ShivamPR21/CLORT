@@ -9,11 +9,15 @@
 5. ```python scripts/train.py wb=clortjsr model=mv_enc dataset=argo_mv loss=basic mb=three_center_orthogonal_distributed val_mb=infer optimizer=optim``` **Loss -> basic | MB -> three_center_orthogonal_distributed | Model -> MV** [WB-ID: "bc9yx4zk"](shivampr21/CLORTJSR/bc9yx4zk)
 6. ```python scripts/train.py wb=clortjsr model=mv_enc dataset=argo_mv loss=loss_v1 mb=five_center val_mb=infer optimizer=optim``` **Loss -> loss_v1 | MB -> five_center | Model -> MV** [WB-ID: "7fywl9ia"](shivampr21/CLORTJSR/7fywl9ia)
 7. ```python scripts/train.py wb=clortjsr model=mv_enc dataset=argo_mv loss=loss_v2 mb=five_center val_mb=infer optimizer=optim``` **Loss -> loss_v2 | MB -> five_center | Model -> MV** [WB-ID: "psc7fvlb"](shivampr21/CLORTJSR/psc7fvlb)
-8. ```python scripts/train.py wb=clortjsr model=mm_enc dataset=argo loss=loss_v2 mb=five_center val_mb=infer optimizer=optim``` Loss -> loss_v2 | MB -> five_center | Model -> MM [WB-ID: "o3v6diy8"](shivampr21/CLORTJSR/o3v6diy8)
+8. ```python scripts/train.py wb=clortjsr model=mm_enc dataset=argo loss=loss_v2 mb=five_center val_mb=infer optimizer=optim``` **Loss -> loss_v2 | MB -> five_center | Model -> MM** [WB-ID: "o3v6diy8"](shivampr21/CLORTJSR/o3v6diy8)
+
+## Extended Run
+
+1. Run 8 : ```python scripts/train.py 'wb.resume="must"' 'wb.run_id="o3v6diy8"' 'model.restore=True' 'model.model_file=model_10.pth' 'model.run_path="shivampr21/CLORTJSR/o3v6diy8"' wb=clortjsr model=mm_enc dataset=argo loss=loss_v2 mb=five_center val_mb=infer optimizer=extended_run_15``` **Loss -> loss_v2 | MB -> five_center | Model -> MM** [WB-ID: "o3v6diy8"](shivampr21/CLORTJSR/o3v6diy8)
 
 ## Running
 
-1. ```python scripts/train.py wb=clortjsr model=mmc_enc dataset=argo loss=loss_v2 mb=five_center val_mb=infer optimizer=optim``` Loss -> loss_v2 | MB -> five_center | Model -> MMC
+1. ```python scripts/train.py wb=clortjsr model=mmc_enc dataset=argo loss=loss_v2 mb=five_center val_mb=infer optimizer=optim``` *Loss -> loss_v2 | MB -> five_center | Model -> MMC* [WB-ID: "t8yc99hv"](shivampr21/CLORTJSR/t8yc99hv)
 
 ## Planned
 

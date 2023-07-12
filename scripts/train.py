@@ -226,7 +226,8 @@ def main(cfg: DictConfig):
     mb_infer = None
 
     if cfg.val_mb.mb == 'Infer':
-        mb_infer = MemoryBankInfer(val_dataset.n_tracks, enc.out_dim, cfg.mb.n_track_centers, t = min(2, cfg.mb.n_track_centers), device=cfg.mb.device) if enc.out_dim is not None else None
+        mb_infer = MemoryBankInfer(val_dataset.n_tracks, enc.out_dim, cfg.mb.n_track_centers, t = min(2, cfg.mb.n_track_centers),
+                                   alpha_threshold=tuple(cfg.val_mb.alpha_t), beta_threshold=tuple(cfg.val_mb.beta_t), device=cfg.mb.device)
     else:
         mb_infer = MemoryBank(val_dataset.n_tracks, enc.out_dim, cfg.mb.n_track_centers,
                               alpha=torch.tensor(cfg.mb.track_center_momentum, dtype=torch.float32, device=cfg.mb.device),
@@ -239,11 +240,41 @@ def main(cfg: DictConfig):
                                temperature_increase_coeff=cfg.loss.t_inc_coeff, pivot=cfg.loss.pivot)
 
     # Initialize optimizer
-    optimizer = torch.optim.AdamW(
-                        params=[
-                            {'params' : enc.parameters(), 'lr': cfg.optimizer.lr, "weight_decay": cfg.optimizer.w_decay}
-                        ], lr = cfg.optimizer.lr, weight_decay=cfg.optimizer.w_decay
-                    )
+    optimizer = None
+    params = []
+    global_lr:float = 1e-4
+    global_w_decay:float = 1e-3
+    if isinstance(cfg.optimizer.lr, list):
+        assert (len(cfg.optimizer.lr) == 4)
+        assert (len(cfg.optimizer.w_decay) == 4)
+
+        global_lr = cfg.optimizer.lr[0]
+        global_w_decay = cfg.optimizer.lr[0]
+        # Level 1
+        if enc.mv_enc is not None:
+            params.append({'params' : enc.mv_enc.parameters(), 'lr': cfg.optimizer.lr[0], "weight_decay": cfg.optimizer.w_decay[0]})
+        if enc.pc_enc is not None:
+            params.append({'params' : enc.pc_enc.parameters(), 'lr': cfg.optimizer.lr[1], "weight_decay": cfg.optimizer.w_decay[1]})
+
+        # Level 2
+        if enc.mv_norm is not None:
+            params.append({'params' : enc.mv_norm.parameters(), 'lr': cfg.optimizer.lr[2], "weight_decay": cfg.optimizer.w_decay[2]})
+        if enc.pc_norm is not None:
+            params.append({'params' : enc.pc_norm.parameters(), 'lr': cfg.optimizer.lr[2], "weight_decay": cfg.optimizer.w_decay[2]})
+        if enc.mm_enc is not None:
+            params.append({'params' : enc.mm_enc.parameters(), 'lr': cfg.optimizer.lr[2], "weight_decay": cfg.optimizer.w_decay[2]})
+
+        # Level 3
+        if enc.mm_norm is not None:
+            params.append({'params' : enc.mm_norm.parameters(), 'lr': cfg.optimizer.lr[3], "weight_decay": cfg.optimizer.w_decay[3]})
+        if enc.mmc_enc is not None:
+            params.append({'params' : enc.mmc_enc.parameters(), 'lr': cfg.optimizer.lr[3], "weight_decay": cfg.optimizer.w_decay[3]})
+    else:
+        global_lr = cfg.optimizer.lr
+        global_w_decay = cfg.optimizer.lr
+        params.append({'params' : enc.parameters(), 'lr': cfg.optimizer.lr, "weight_decay": cfg.optimizer.w_decay})
+
+    optimizer = torch.optim.AdamW(params=params, lr = global_lr, weight_decay=global_w_decay)
 
     # Load model from file
     last_epoch = -1
@@ -252,19 +283,16 @@ def main(cfg: DictConfig):
                                                    gamma=cfg.optimizer.lr_decay, last_epoch=last_epoch)
     # lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[1, 2, 3, 5, 6, 7], gamma=0.9, last_epoch=last_epoch)
 
-    # training_loss: List[float] = []
-    # validation_loss: List[float] = []
-
     assert(run is not None and mb is not None and mb_infer is not None)
 
     if cfg.model.restore:
         print(f'Loading model from file: {cfg.model.model_file = } \t {cfg.model.run_path = }')
         ckpt = torch.load(run.restore(name=cfg.model.model_file, run_path=cfg.model.run_path).name)
-        print(f'{enc.load_state_dict(ckpt["enc"]) = }')
-        print(f'{optimizer.load_state_dict(ckpt["optimizer"]) = }')
-        print(f'{lr_scheduler.load_state_dict(ckpt["lr_scheduler"]) = }')
-        print(f'{mb.load_state_dict(ckpt["mb"]) = }')
-        print(f'{mb_infer.load_state_dict(ckpt["mb_infer"]) = }')
+        print(f'{enc.load_state_dict(ckpt["enc"]) = }') if cfg.model.restore_model else print("Not restoring model parameters.")
+        print(f'{optimizer.load_state_dict(ckpt["optimizer"]) = }') if cfg.model.restore_optimizer else print("Not restoring optimizer parameters.")
+        print(f'{lr_scheduler.load_state_dict(ckpt["lr_scheduler"]) = }') if cfg.model.restore_optimizer else print("Not restoring learning rate scheduler parameters.")
+        print(f'{mb.load_state_dict(ckpt["mb"]) = }') if cfg.model.restore_mb else print("Not restoring memory bank parameters.")
+        print(f'{mb_infer.load_state_dict(ckpt["mb_infer"]) = }') if cfg.model.restore_mb else print("Not restoring memory bank parameters.")
 
     last_epoch = lr_scheduler.last_epoch
     n_epochs = cfg.optimizer.n_epochs

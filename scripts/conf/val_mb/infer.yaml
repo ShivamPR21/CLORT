@@ -1,3 +1,6 @@
 # MemoryBank Config
 mb: "Infer" # Train
 reset: True
+
+alpha_t: [0.1, 0.6]
+beta_t: [0.5, 0.9]

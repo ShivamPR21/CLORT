@@ -1,3 +1,6 @@
 # MemoryBank Config
 mb: "Train" # Infer
 reset: True
+
+alpha_t: null
+beta_t: null
