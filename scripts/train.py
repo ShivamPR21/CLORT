@@ -4,7 +4,7 @@ from typing import Any, Dict
 import hydra
 import numpy as np
 import torch
-from omegaconf import DictConfig
+from omegaconf import DictConfig, ListConfig
 from torch.utils.data import DataLoader
 from torchvision.transforms.transforms import ColorJitter, RandomApply
 from tqdm import tqdm
@@ -239,12 +239,17 @@ def main(cfg: DictConfig):
                                sim_type=cfg.loss.sim_type, temperature_adaptation_policy=cfg.loss.temperature_adaptation_policy,
                                temperature_increase_coeff=cfg.loss.t_inc_coeff, pivot=cfg.loss.pivot)
 
+    print(f'{train_dataset.n_tracks = } \t {val_dataset.n_tracks = }')
+
     # Initialize optimizer
     optimizer = None
     params = []
     global_lr:float = 1e-4
     global_w_decay:float = 1e-3
-    if isinstance(cfg.optimizer.lr, list):
+
+    print(f'{cfg.optimizer.lr = } \t {cfg.optimizer.w_decay = }')
+
+    if isinstance(cfg.optimizer.lr, ListConfig):
         assert (len(cfg.optimizer.lr) == 4)
         assert (len(cfg.optimizer.w_decay) == 4)
 
