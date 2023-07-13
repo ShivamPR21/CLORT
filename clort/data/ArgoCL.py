@@ -23,6 +23,7 @@ class ArgoCL(Dataset):
                  distance_threshold: Tuple[float, float] | None = None,
                  img_size : Tuple[int, int] = (224, 224),
                  point_cloud_size: List[int] | int | None = None,
+                 point_cloud_scaling: float = 1,
                  pivot_to_first_frame: bool = False,
                  vision_transform: Type[nn.Module] | None = None,
                  pcl_transform: Type[nn.Module] | None = None) -> None:
@@ -41,6 +42,7 @@ class ArgoCL(Dataset):
         self.dt = distance_threshold
         self.img_size = img_size
         self.pcs = point_cloud_size
+        self.pc_scale = point_cloud_scaling
         self.pvff = pivot_to_first_frame
         self.vt = vision_transform
         self.pcl_tr = pcl_transform
@@ -277,6 +279,7 @@ class ArgoCL(Dataset):
         # Aggregate informations from all frames in temporal horizon
         if self.pc:
             pcls = torch.from_numpy(np.concatenate(pcls, axis=0) - (pivot if pivot is not None else 0)) # Concatenate on points dimension
+            pcls /= self.pc_scale
 
         if self.im:
             imgs = torch.from_numpy(np.concatenate(imgs, axis=0).astype(np.float32)/255.) # Concatenate images on channel dimension # [_, 250, 250]
@@ -294,6 +297,7 @@ class ArgoCL(Dataset):
             #     torch.from_numpy(np.concatenate(bboxs, axis=0)).unsqueeze(dim=0).split(8, dim=1),
             #     dim=0) # [num_dets, 8, 3] # Concatenation on points dimension
             bboxs = torch.from_numpy(np.concatenate(bboxs, axis=0) - (pivot if pivot is not None else 0)).view(-1, 8, 3)
+            bboxs /= self.pc_scale
 
         pcls_sz = np.array(pcls_sz, dtype=np.uint16) if len(pcls_sz) != 0 else []
         imgs_sz = np.array(imgs_sz, dtype=np.uint8) if len(imgs_sz) != 0 else []

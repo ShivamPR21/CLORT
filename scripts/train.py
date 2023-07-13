@@ -170,6 +170,7 @@ def main(cfg: DictConfig):
                             splits=cfg.dataset.train_splits,
                             img_size=tuple(cfg.dataset.img_shape),
                             point_cloud_size=cfg.dataset.pcl_quant,
+                            point_cloud_scaling=cfg.dataset.pcl_scale,
                             in_global_frame=cfg.dataset.global_frame,
                             pivot_to_first_frame=cfg.dataset.pivot_to_first_frame,
                             image=cfg.dataset.imgs, pcl=cfg.dataset.pcl, bbox=cfg.dataset.bbox_aug,
@@ -189,6 +190,7 @@ def main(cfg: DictConfig):
                         splits=cfg.dataset.val_splits,
                         img_size=tuple(cfg.dataset.img_shape),
                         point_cloud_size=cfg.dataset.pcl_quant,
+                        point_cloud_scaling=cfg.dataset.pcl_scale,
                         in_global_frame=cfg.dataset.global_frame,
                         pivot_to_first_frame=cfg.dataset.pivot_to_first_frame,
                         image=cfg.dataset.imgs, pcl=cfg.dataset.pcl, bbox=cfg.dataset.bbox_aug)

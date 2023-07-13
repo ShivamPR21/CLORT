@@ -17,7 +17,7 @@
 
 ## Running
 
-1. ```python scripts/train.py wb=clortjsr model=mmc_enc dataset=argo loss=loss_v2 mb=five_center val_mb=infer optimizer=optim``` *Loss -> loss_v2 | MB -> five_center | Model -> MMC* [WB-ID: "t8yc99hv"](shivampr21/CLORTJSR/t8yc99hv)
+1. ```python scripts/train.py 'model.restore=True' 'model.model_file=model_15.pth' 'model.run_path="shivampr21/CLORTJSR/o3v6diy8"' wb=clortjsr model=mmc_enc dataset=argo loss=loss_v2 mb=five_center val_mb=infer optimizer=optim_base_frozen``` *Loss -> loss_v2 | MB -> five_center | Model -> MMC* [WB-ID: ""](shivampr21/CLORTJSR/)
 
 ## Planned
 
@@ -28,3 +28,13 @@
 5. ```python scripts/train.py wb=clortjsr model=mv_xo_enc dataset=argo loss=loss_v1 mb=five_center val_mb=infer optimizer=optim``` Loss -> loss_v1 | MB -> five_center | Model -> MV-XO
 6. ```python scripts/train.py wb=clortjsr model=mm_xo_enc dataset=argo loss=loss_v1 mb=five_center val_mb=infer optimizer=optim``` Loss -> loss_v1 | MB -> five_center | Model -> MM-XO
 7. ```python scripts/train.py wb=clortjsr model=mmc_xo_enc dataset=argo loss=loss_v1 mb=five_center val_mb=infer optimizer=optim``` Loss -> loss_v1 | MB -> five_center | Model -> MMC-XO
+
+## Templates
+
+- Fresh Run: ```python scripts/train.py wb=clortjsr model=mmc_enc dataset=argo loss=loss_v2 mb=five_center val_mb=infer optimizer=optim``` *Loss -> loss_v2 | MB -> five_center | Model -> MMC* [WB-ID: ""](shivampr21/CLORTJSR/)
+- Frozen Run: ```python scripts/train.py 'model.restore=True' 'model.model_file=model_10.pth' 'model.run_path="shivampr21/CLORTJSR/o3v6diy8"' wb=clortjsr model=mmc_enc dataset=argo loss=loss_v2 mb=five_center val_mb=infer optimizer=optim_base_frozen``` *Loss -> loss_v2 | MB -> five_center | Model -> MMC* [WB-ID: ""](shivampr21/CLORTJSR/)
+- Extended Run: ```python scripts/train.py 'wb.resume="must"' 'wb.run_id="o3v6diy8"' 'model.restore=True' 'model.model_file=model_10.pth' 'model.run_path="shivampr21/CLORTJSR/o3v6diy8"' wb=clortjsr model=mm_enc dataset=argo loss=loss_v2 mb=five_center val_mb=infer optimizer=extended_run_15``` *Loss -> loss_v2 | MB -> five_center | Model -> MM* [WB-ID: ""](shivampr21/CLORTJSR/)
+
+## Scrapped
+
+- ```python scripts/train.py wb=clortjsr model=mmc_enc dataset=argo loss=loss_v2 mb=five_center val_mb=infer optimizer=optim``` *Loss -> loss_v2 | MB -> five_center | Model -> MMC* [WB-ID: "t8yc99hv"](shivampr21/CLORTJSR/t8yc99hv)
