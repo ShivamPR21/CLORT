@@ -11,7 +11,7 @@ from . import MinimalCrossObjectEncoder
 
 class MultiModalEncoder(nn.Module):
 
-    def __init__(self, mv_in_dim = 256, pc_in_dim = 128, out_dim: int = 128,
+    def __init__(self, mv_in_dim: int = 256, pc_in_dim: int = 128, udim: int = 256, out_dim: int = 128,
                  norm_layer: Callable[..., nn.Module] | None = nn.LayerNorm,
                  activation_layer: Callable[..., nn.Module] | None = nn.SELU,
                  enable_xo: bool = False, features_only: bool = False) -> None:
@@ -20,7 +20,7 @@ class MultiModalEncoder(nn.Module):
         self.eps = 1e-9
         self.enable_xo = enable_xo
         self.features_only = features_only
-        self.udim = max(mv_in_dim, pc_in_dim)
+        self.udim = udim
 
         self.mv_linear = LinearNormActivation(mv_in_dim, self.udim, norm_layer=norm_layer, activation_layer=activation_layer)
         self.pc_linear = LinearNormActivation(pc_in_dim, self.udim, norm_layer=norm_layer, activation_layer=activation_layer)

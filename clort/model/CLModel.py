@@ -50,7 +50,7 @@ class CLModel(nn.Module):
         mv_features = self.mv_enc.out_dim if self.mv_enc is not None else mv_features
         pc_features = self.pc_enc.out_dim if self.pc_enc is not None else pc_features
 
-        self.mm_enc = MultiModalEncoder(mv_features, pc_features, mm_features, norm_layer=nn.LayerNorm,
+        self.mm_enc = MultiModalEncoder(mv_features, pc_features, mm_features, mm_features, norm_layer=nn.LayerNorm,
                                         activation_layer=nn.SELU, enable_xo=mm_xo,
                                         features_only=mmc_features is not None) if (mv_features is not None and pc_features is not None and mm_features is not None) else None
 
