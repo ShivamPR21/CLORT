@@ -349,12 +349,13 @@ def ArgoCl_collate_fxn(batch:Any):
 
 class ArgoCLSampler(Sampler):
 
-    def __init__(self, data_source: ArgoCL, shuffle: bool = False) -> None:
+    def __init__(self, data_source: ArgoCL, shuffle: bool = False, cross_log: bool= True) -> None:
         super().__init__(None)
 
         self.n = data_source.n
         self.N = len(data_source)
         self.shuffle = shuffle
+        self.cross_log = cross_log
         self._generate_indices()
 
     def _generate_indices(self) -> None:
@@ -372,7 +373,10 @@ class ArgoCLSampler(Sampler):
         shp = (len(self._idxs)//len(self.n), len(self.n))
         excess = self._idxs[shp[0]*shp[1]:]
 
-        self._idxs = self._idxs[:shp[0]*shp[1]].reshape(shp, order='F').flatten(order='C').tolist() + excess.tolist()
+        if self.cross_log:
+            self._idxs = self._idxs[:shp[0]*shp[1]].reshape(shp, order='F').flatten(order='C').tolist() + excess.tolist()
+        else:
+            self._idxs = self._idxs.tolist()
 
     def __iter__(self) -> Iterator:
         if self.shuffle:
