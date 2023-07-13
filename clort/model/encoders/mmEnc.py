@@ -27,7 +27,7 @@ class MultiModalEncoder(nn.Module):
         self.gat_1 = MultiHeadSelfAttentionLinear(self.udim, None, n_heads=2, residual=True)
 
         self.xo_gat = MinimalCrossObjectEncoder(self.udim, self.udim, k=10,
-                                                norm_layer=norm_layer, activation_layer=activation_layer) if self.enable_xo else None
+                                                norm_layer=norm_layer, activation_layer=activation_layer, similarity='cosine') if self.enable_xo else None
 
         self.projection_head1 = LinearNormActivation(self.udim + (self.udim if self.enable_xo else 0), self.udim, bias=True,
                                                     norm_layer=norm_layer,
