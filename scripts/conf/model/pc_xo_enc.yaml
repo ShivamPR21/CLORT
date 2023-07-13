@@ -3,7 +3,7 @@ info: "PC XO Encoder : PointCloud Encoder w/ CrossObject awareness at lower leve
 mv_features: null
 mv_xo: False
 ## PC Encoder
-pc_features: 128
+pc_features: 256
 pc_xo: True
 ## MM Encoder
 mm_features: null

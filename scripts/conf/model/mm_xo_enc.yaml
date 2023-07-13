@@ -3,7 +3,7 @@ info: "MM XO Encoder : MultiModal Encoder w/ CrossObject awareness at lower leve
 mv_features: 256
 mv_xo: True
 ## PC Encoder
-pc_features: 128
+pc_features: 256
 pc_xo: True
 ## MM Encoder
 mm_features: 256
