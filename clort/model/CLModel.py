@@ -56,15 +56,8 @@ class CLModel(nn.Module):
 
         mm_features = self.mm_enc.out_dim if self.mm_enc is not None else mm_features
 
-        self.mv_norm = nn.LayerNorm(mv_features) if self.mm_enc is not None and mv_features is not None else None
-        self.pc_norm = nn.LayerNorm(pc_features) if self.mm_enc is not None and pc_features is not None else None
-        self.mm_act = nn.SELU() if self.mm_enc is not None else None
-
         self.mmc_enc = CrossObjectEncoder(mm_features, mmc_features, norm_layer=nn.LayerNorm,
                                           activation_layer=nn.SELU) if (mm_features is not None and mmc_features is not None) else None
-
-        self.mm_norm = nn.LayerNorm(mm_features) if self.mmc_enc is not None and mm_features is not None else None
-        self.mmc_act = nn.SELU() if self.mmc_enc is not None else None
 
         print(f'Final model Config: {mv_features = } \t {mv_xo = } \t {pc_features = } \t {bbox_aug = } \n'
               f'{pc_xo = } \t {mm_features = } \t {mm_xo = } \t {mmc_features = }')
@@ -76,13 +69,7 @@ class CLModel(nn.Module):
         mv_e = self.mv_enc(imgs, imgs_sz, frame_sz) if self.mv_enc is not None else None
         pc_e = self.pc_enc(pcls, pcls_sz, frame_sz, bboxs) if self.pc_enc is not None else None
 
-        if self.mv_norm is not None and self.pc_norm is not None and self.mm_act is not None:
-            mv_e, pc_e = self.mm_act(self.mv_norm(mv_e)), self.mm_act(self.pc_norm(pc_e))
-
         mm_e = self.mm_enc(mv_e, pc_e, frame_sz) if self.mm_enc is not None else None
-
-        if self.mm_norm is not None and self.mmc_act is not None:
-            mm_e = self.mmc_act(self.mm_norm(mm_e))
 
         mmc_e = self.mmc_enc(mm_e, frame_sz) if (self.mmc_enc is not None and mm_e is not None) else None
 
