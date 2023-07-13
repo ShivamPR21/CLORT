@@ -264,20 +264,10 @@ def main(cfg: DictConfig):
             params.append({'params' : enc.pc_enc.parameters(), 'lr': cfg.optimizer.lr[1], "weight_decay": cfg.optimizer.w_decay[1]})
 
         # Level 2
-        if enc.mv_norm is not None:
-            params.append({'params' : enc.mv_norm.parameters(), 'lr': cfg.optimizer.lr[2], "weight_decay": cfg.optimizer.w_decay[2]})
-        if enc.pc_norm is not None:
-            params.append({'params' : enc.pc_norm.parameters(), 'lr': cfg.optimizer.lr[2], "weight_decay": cfg.optimizer.w_decay[2]})
-        if enc.mm_act is not None:
-            params.append({'params' : enc.mm_act.parameters(), 'lr': cfg.optimizer.lr[2], "weight_decay": cfg.optimizer.w_decay[2]})
         if enc.mm_enc is not None:
             params.append({'params' : enc.mm_enc.parameters(), 'lr': cfg.optimizer.lr[2], "weight_decay": cfg.optimizer.w_decay[2]})
 
         # Level 3
-        if enc.mm_norm is not None:
-            params.append({'params' : enc.mm_norm.parameters(), 'lr': cfg.optimizer.lr[3], "weight_decay": cfg.optimizer.w_decay[3]})
-        if enc.mmc_act is not None:
-            params.append({'params' : enc.mmc_act.parameters(), 'lr': cfg.optimizer.lr[3], "weight_decay": cfg.optimizer.w_decay[3]})
         if enc.mmc_enc is not None:
             params.append({'params' : enc.mmc_enc.parameters(), 'lr': cfg.optimizer.lr[3], "weight_decay": cfg.optimizer.w_decay[3]})
     else:
