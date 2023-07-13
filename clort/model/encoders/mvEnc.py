@@ -47,7 +47,8 @@ class MultiViewEncoder(nn.Module):
                  norm_2d : Callable[..., nn.Module] | None=None,
                  norm_1d : Callable[..., nn.Module] | None=None,
                  activation_layer: Callable[..., nn.Module] | None=None,
-                 enable_xo: bool = False) -> None:
+                 enable_xo: bool = False,
+                 features_only: bool = False) -> None:
         super().__init__()
 
         self.eps = 1e-9
@@ -55,6 +56,7 @@ class MultiViewEncoder(nn.Module):
         self.image_shape = image_shape
         self.in_dim, self.out_dim = in_dim, out_dim
         self.enable_xo = enable_xo
+        self.features_only = features_only
 
         self.conv1 = ConvNormActivation2d(self.in_dim, 64, kernel_size=5, stride=2,
                                           norm_layer=norm_2d, activation_layer=activation_layer)
@@ -109,6 +111,8 @@ class MultiViewEncoder(nn.Module):
 
         self.max_pool = nn.AdaptiveMaxPool2d((1, 1))
 
+        self.out_dim = 512 if self.features_only else self.out_dim
+
     def forward(self, x: torch.Tensor, n_views: np.ndarray, n_nodes: np.ndarray | None = None) -> torch.Tensor:
         x1 = self.conv1(x)
         x2 = self.conv2(x1)
@@ -138,8 +142,9 @@ class MultiViewEncoder(nn.Module):
         x = torch.cat([x2_p, x4_p, x6_p, x7], dim=1)
         x = self.linear8(x)
 
-        x = self.projection_head(x)
+        if not self.features_only:
+            x = self.projection_head(x)
 
-        x = x/(x.norm(dim=1, keepdim=True) + self.eps)
+            x = x/(x.norm(dim=1, keepdim=True) + self.eps)
 
         return x

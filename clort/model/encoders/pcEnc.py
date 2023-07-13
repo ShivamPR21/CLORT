@@ -16,10 +16,12 @@ class BboxEncoder(nn.Module):
                  norm_layer: Callable[..., nn.Module] | None = nn.LayerNorm,
                  activation_layer: Callable[..., nn.Module] | None = nn.SELU,
                  offloading: bool = True,
-                 enable_xo: bool = False) -> None:
+                 enable_xo: bool = False,
+                 features_only: bool = False) -> None:
         super().__init__()
 
         self.enable_xo = enable_xo
+        self.features_only = features_only
 
         self.graph_conv1 = GraphConv(3, 64, k=4, reduction='max',
                                     features='local+global',
@@ -69,11 +71,13 @@ class PointCloudEncoder(nn.Module):
     def __init__(self, out_dims : int = 128, bbox_aug : bool = True,
                  norm_layer: Callable[..., nn.Module] | None = nn.LayerNorm,
                  activation_layer: Callable[..., nn.Module] | None = nn.SELU,
-                 offloading: bool = True, enable_xo: bool = False) -> None:
+                 offloading: bool = True, enable_xo: bool = False,
+                 features_only: bool = False) -> None:
         super().__init__()
 
         self.eps = 1e-9
         self.enable_xo = enable_xo
+        self.features_only = features_only
 
         self.graph_conv1 = GraphConv(3, 64, k=10, reduction='max',
                                     features='local+global',
@@ -126,6 +130,8 @@ class PointCloudEncoder(nn.Module):
 
         self.projection_head = LinearNormActivation(64*4 + (64 if bbox_aug else 0), out_dims, bias=True, activation_layer=None)
 
+        self.out_dim = (64*4 + (64 if bbox_aug else 0)) if self.features_only else out_dims
+
     def aggregate(self, f: torch.Tensor, sz_arr: List[List[int]]) -> torch.Tensor:
         out = torch.zeros((len(sz_arr), f.shape[-1]), dtype=torch.float32, device=f.device)
 
@@ -165,9 +171,10 @@ class PointCloudEncoder(nn.Module):
         f_bbox = self.bbox_enc(bbox, n_objects) if bbox is not None and self.bbox_enc is not None else None
         f = torch.cat([f, f_bbox], dim=1) if f_bbox is not None else f
 
-        f = self.projection_head(f)
+        if not self.features_only:
+            f = self.projection_head(f)
 
-        f = f/(f.norm(dim=1, keepdim=True) + self.eps)
+            f = f/(f.norm(dim=1, keepdim=True) + self.eps)
 
         return f
 

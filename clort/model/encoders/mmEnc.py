@@ -14,11 +14,12 @@ class MultiModalEncoder(nn.Module):
     def __init__(self, mv_in_dim = 256, pc_in_dim = 128, out_dim: int = 128,
                  norm_layer: Callable[..., nn.Module] | None = nn.LayerNorm,
                  activation_layer: Callable[..., nn.Module] | None = nn.SELU,
-                 enable_xo: bool = False) -> None:
+                 enable_xo: bool = False, features_only: bool = False) -> None:
         super().__init__()
 
         self.eps = 1e-9
         self.enable_xo = enable_xo
+        self.features_only = features_only
         self.udim = max(mv_in_dim, pc_in_dim)
 
         self.mv_linear = LinearNormActivation(mv_in_dim, self.udim, norm_layer=norm_layer, activation_layer=activation_layer)
@@ -37,6 +38,8 @@ class MultiModalEncoder(nn.Module):
                                                     norm_layer=None,
                                                     activation_layer=None)
 
+        self.out_dim = self.udim if self.features_only else out_dim
+
     def forward(self, mv_enc: torch.Tensor, pc_enc: torch.Tensor, n_nodes: np.ndarray | None = None) -> torch.Tensor:
         # mv_enc -> [n_obj, N_mv]
         # pc_enc -> [n_obj, N_pc]
@@ -47,7 +50,9 @@ class MultiModalEncoder(nn.Module):
         enc = torch.cat([enc, self.xo_gat(enc, n_nodes)], dim=-1) if (self.xo_gat is not None and n_nodes is not None) else enc
 
         enc = self.projection_head1(enc)
-        enc = self.projection_head2(enc)
 
-        enc = enc/(enc.norm(dim=1, keepdim=True) + self.eps)
+        if not self.features_only:
+            enc = self.projection_head2(enc)
+            enc = enc/(enc.norm(dim=1, keepdim=True) + self.eps)
+
         return enc

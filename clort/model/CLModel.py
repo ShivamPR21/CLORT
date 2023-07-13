@@ -39,14 +39,22 @@ class CLModel(nn.Module):
         self.mv_enc = MultiViewEncoder(out_dim=mv_features,
                                        norm_2d=nn.InstanceNorm2d,
                                        norm_1d=nn.LayerNorm,
-                                       enable_xo=mv_xo) if mv_features is not None else None
+                                       enable_xo=mv_xo,
+                                       features_only=mm_features is not None or mmc_features is not None) if mv_features is not None else None
 
         self.pc_enc = PointCloudEncoder(out_dims=pc_features, bbox_aug=bbox_aug,
                                         norm_layer=nn.LayerNorm, activation_layer=nn.SELU,
-                                        offloading=False, enable_xo=pc_xo) if pc_features is not None else None
+                                        offloading=False, enable_xo=pc_xo,
+                                        features_only=mm_features is not None or mmc_features is not None) if pc_features is not None else None
+
+        mv_features = self.mv_enc.out_dim if self.mv_enc is not None else mv_features
+        pc_features = self.pc_enc.out_dim if self.pc_enc is not None else pc_features
 
         self.mm_enc = MultiModalEncoder(mv_features, pc_features, mm_features, norm_layer=nn.LayerNorm,
-                                        activation_layer=nn.SELU, enable_xo=mm_xo) if (mv_features is not None and pc_features is not None and mm_features is not None) else None
+                                        activation_layer=nn.SELU, enable_xo=mm_xo,
+                                        features_only=mmc_features is not None) if (mv_features is not None and pc_features is not None and mm_features is not None) else None
+
+        mm_features = self.mm_enc.out_dim if self.mm_enc is not None else mm_features
 
         self.mv_norm = nn.LayerNorm(mv_features) if self.mm_enc is not None and mv_features is not None else None
         self.pc_norm = nn.LayerNorm(pc_features) if self.mm_enc is not None and pc_features is not None else None
@@ -57,6 +65,9 @@ class CLModel(nn.Module):
 
         self.mm_norm = nn.LayerNorm(mm_features) if self.mmc_enc is not None and mm_features is not None else None
         self.mmc_act = nn.SELU() if self.mmc_enc is not None else None
+
+        print(f'Final model Config: {mv_features = } \t {mv_xo = } \t {pc_features = } \t {bbox_aug = } \n'
+              f'{pc_xo = } \t {mm_features = } \t {mm_xo = } \t {mmc_features = }')
 
     def forward(self, pcls: torch.Tensor | List[Any], pcls_sz: np.ndarray | List[Any],
                 imgs: torch.Tensor | List[Any], imgs_sz: torch.Tensor | List[Any],
