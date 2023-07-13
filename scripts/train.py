@@ -256,7 +256,7 @@ def main(cfg: DictConfig):
         assert (len(cfg.optimizer.w_decay) == 4)
 
         global_lr = cfg.optimizer.lr[0]
-        global_w_decay = cfg.optimizer.lr[0]
+        global_w_decay = cfg.optimizer.w_decay[0]
         # Level 1
         if enc.mv_enc is not None:
             params.append({'params' : enc.mv_enc.parameters(), 'lr': cfg.optimizer.lr[0], "weight_decay": cfg.optimizer.w_decay[0]})
@@ -272,7 +272,7 @@ def main(cfg: DictConfig):
             params.append({'params' : enc.mmc_enc.parameters(), 'lr': cfg.optimizer.lr[3], "weight_decay": cfg.optimizer.w_decay[3]})
     else:
         global_lr = cfg.optimizer.lr
-        global_w_decay = cfg.optimizer.lr
+        global_w_decay = cfg.optimizer.w_decay
         params.append({'params' : enc.parameters(), 'lr': cfg.optimizer.lr, "weight_decay": cfg.optimizer.w_decay})
 
     optimizer = torch.optim.AdamW(params=params, lr = global_lr, weight_decay=global_w_decay)
