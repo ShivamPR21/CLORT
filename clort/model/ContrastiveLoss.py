@@ -53,7 +53,8 @@ def diff_similarity(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
 class ContrastiveLoss(nn.Module):
 
     def __init__(self,
-                 temp: float = 0.3,
+                 temp: float = 0.05,
+                 max_t: float = 0.15,
                  global_contrast: bool = True,
                  separation: str = 'elements', # elements, tracks, dense
                 #  pos_norm: str = 'mean', # 'max', 'min', 'max.std' #TODO@ShivamPR21: Implement different positive normalization method
@@ -73,6 +74,7 @@ class ContrastiveLoss(nn.Module):
 
         self.temp_adapt_policy = temperature_adaptation_policy
         self.t_coeff = temperature_increase_coeff
+        self.max_t = max_t
 
         if isinstance(self.temp_adapt_policy, str):
             if self.temp_adapt_policy == 'gradual_increase':
@@ -107,7 +109,7 @@ class ContrastiveLoss(nn.Module):
         self.pivot = pivot
 
     def _temp_step(self):
-        self.temp += self.t_coeff
+        self.temp = min(self.max_t, self.temp+self.t_coeff)
 
     def _get_temp(self) -> Tuple[float, float]:
         temp_p, temp_n = self.temp, self.temp

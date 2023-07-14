@@ -221,7 +221,7 @@ def main(cfg: DictConfig):
                     device=cfg.mb.device, init=cfg.mb.init, init_dilation=cfg.mb.init_dilation,
                     init_density=cfg.mb.init_density)
 
-    cl = ContrastiveLoss(temp=cfg.loss.temperature, global_contrast=cfg.loss.global_contrast,
+    cl = ContrastiveLoss(temp=cfg.loss.temperature, max_t=cfg.loss.max_t, global_contrast=cfg.loss.global_contrast,
                         separation=cfg.loss.separation, static_contrast=cfg.loss.static_contrast,
                         soft_condition=cfg.loss.soft_condition, global_horizon=cfg.loss.global_horizon,
                         sim_type=cfg.loss.sim_type, temperature_adaptation_policy=cfg.loss.temperature_adaptation_policy,
@@ -237,7 +237,7 @@ def main(cfg: DictConfig):
                               alpha=torch.tensor(cfg.mb.track_center_momentum, dtype=torch.float32, device=cfg.mb.device),
                               device=cfg.mb.device)
 
-    cl_infer = ContrastiveLoss(temp=cfg.loss.temperature, global_contrast=cfg.loss.global_contrast,
+    cl_infer = ContrastiveLoss(temp=cfg.loss.temperature, max_t=cfg.loss.max_t, global_contrast=cfg.loss.global_contrast,
                                separation=cfg.loss.separation, static_contrast=cfg.loss.static_contrast,
                                soft_condition=cfg.loss.soft_condition, global_horizon=cfg.loss.global_horizon,
                                sim_type=cfg.loss.sim_type, temperature_adaptation_policy=cfg.loss.temperature_adaptation_policy,
