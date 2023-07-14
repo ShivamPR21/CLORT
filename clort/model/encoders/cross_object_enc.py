@@ -39,25 +39,29 @@ class CrossObjectEncoder(nn.Module):
         self.eps = 1e-9
         self.in_dim, self.out_dim = in_dim, out_dim
 
-        enc_layers = [128, 64, 128]
+        enc_layers = [512, 256, 128]
 
         # self.gat1 = SelfGraphAttentionLinear(self.in_dim, None, residual=True, dynamic_batching=True)
         # self.conv1 = GraphConv(self.in_dim, enc_layers[0], bias=True, k=10,
         #                        reduction='max', features='local+global',
         #                        norm_layer=norm_layer, activation_layer=activation_layer,
         #                        dynamic_batching=True, enable_offloading=False)
-
-        self.xo1 = MinimalCrossObjectEncoder(self.in_dim, enc_layers[0], k = 10, norm_layer=norm_layer,
+        self.f_p1 = LinearNormActivation(self.in_dim, enc_layers[0],
+                                         norm_layer=norm_layer, activation_layer=activation_layer)
+        self.xo1 = MinimalCrossObjectEncoder(enc_layers[0], enc_layers[0], k = 10, norm_layer=norm_layer,
                                              activation_layer=activation_layer, similarity='cosine')
+        self.p1 = LinearNormActivation(enc_layers[0], enc_layers[0], norm_layer=norm_layer, activation_layer=activation_layer)
 
         # self.gat2 = SelfGraphAttentionLinear(enc_layers[0], None, residual=True, dynamic_batching=True)
         # self.conv2 = GraphConv(enc_layers[0], enc_layers[1], bias=True, k=10,
         #                        reduction='max', features='local+global',
         #                        norm_layer=norm_layer, activation_layer=activation_layer,
         #                        dynamic_batching=True, enable_offloading=False)
-
-        self.xo2 = MinimalCrossObjectEncoder(enc_layers[0], enc_layers[1], k = 10, norm_layer=norm_layer,
+        self.f_p2 = LinearNormActivation(enc_layers[0], enc_layers[1],
+                                         norm_layer=norm_layer, activation_layer=activation_layer)
+        self.xo2 = MinimalCrossObjectEncoder(enc_layers[1], enc_layers[1], k = 10, norm_layer=norm_layer,
                                              activation_layer=activation_layer, similarity='cosine')
+        self.p2 = LinearNormActivation(enc_layers[1], enc_layers[1], norm_layer=norm_layer, activation_layer=activation_layer)
 
         # self.gat3 = SelfGraphAttentionLinear(enc_layers[1], None, residual=True, dynamic_batching=True)
         # self.conv3 = GraphConv(enc_layers[1], enc_layers[2], bias=True, k=10,
@@ -65,20 +69,30 @@ class CrossObjectEncoder(nn.Module):
         #                        norm_layer=norm_layer, activation_layer=activation_layer,
         #                        dynamic_batching=True, enable_offloading=False)
 
-        self.xo3 = MinimalCrossObjectEncoder(enc_layers[1], enc_layers[2], k = 10, norm_layer=norm_layer,
+        self.f_p3 = LinearNormActivation(enc_layers[1], enc_layers[2],
+                                         norm_layer=norm_layer, activation_layer=activation_layer)
+        self.xo3 = MinimalCrossObjectEncoder(enc_layers[2], enc_layers[2], k = 10, norm_layer=norm_layer,
                                              activation_layer=activation_layer, similarity='cosine')
+        self.p3 = LinearNormActivation(enc_layers[2], enc_layers[2], norm_layer=norm_layer, activation_layer=activation_layer)
 
-        self.projection_head = LinearNormActivation(np.sum(enc_layers), self.out_dim, bias=True,
+        self.projection_head1 = LinearNormActivation(np.sum(enc_layers) + enc_layers[0], 512, bias=True,
+                                                    norm_layer=None, activation_layer=None)
+
+        self.projection_head2 = LinearNormActivation(512, self.out_dim, bias=True,
                                                     norm_layer=None, activation_layer=None)
 
     def forward(self, obj_encs: torch.Tensor, n_nodes: np.ndarray) -> torch.Tensor:
+        obj_encs = self.f_p1(obj_encs)
+
         obj_encs1 = self.xo1(obj_encs, n_nodes) #self.conv1(self.gat1(obj_encs, n_nodes), n_nodes)
-        obj_encs2 = self.xo2(obj_encs1, n_nodes) #self.conv2(self.gat2(obj_encs1, n_nodes), n_nodes)
-        obj_encs3 = self.xo3(obj_encs2, n_nodes) #self.conv3(self.gat3(obj_encs2, n_nodes), n_nodes)
+        obj_encs2 = self.xo2(self.f_p2(obj_encs1), n_nodes) #self.conv2(self.gat2(obj_encs1, n_nodes), n_nodes)
+        obj_encs3 = self.xo3(self.f_p3(obj_encs2), n_nodes) #self.conv3(self.gat3(obj_encs2, n_nodes), n_nodes)
 
-        obj_encs = torch.cat([obj_encs1, obj_encs2, obj_encs3], dim=1)
+        obj_encs = torch.cat([obj_encs, self.p1(obj_encs1), self.p2(obj_encs2), self.p3(obj_encs3)], dim=1)
 
-        obj_encs = self.projection_head(obj_encs)
+        obj_encs = self.projection_head1(obj_encs)
+
+        obj_encs = self.projection_head2(obj_encs)
 
         obj_encs = obj_encs/(obj_encs.norm(dim=1, keepdim=True) + self.eps)
 
