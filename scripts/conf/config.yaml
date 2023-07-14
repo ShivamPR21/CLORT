@@ -6,4 +6,4 @@ defaults:
   - mb: single_center
   - val_mb: infer
   - optimizer: optim
-  - restore: complete
+  - restore: none

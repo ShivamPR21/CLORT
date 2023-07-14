@@ -1,4 +1,4 @@
-restore_model: True
+restore_model: False
 restore_optimizer: False
 restore_scheduler: False
 restore_mb: False

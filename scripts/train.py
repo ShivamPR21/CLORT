@@ -303,11 +303,12 @@ def main(cfg: DictConfig):
 
     print(f'{len(train_dl) = } \t {len(val_dl) = }')
 
-    # Restore temperature parameters
-    for _ in range(last_epoch):
-        cl._temp_step()
-        cl_infer._temp_step()
-        print(f'Restored temperature parameter: {cl.temp = } \t {cl_infer.temp = }')
+    if cfg.restore.restore_loss_t:
+        # Restore temperature parameters
+        for _ in range(last_epoch):
+            cl._temp_step()
+            cl_infer._temp_step()
+            print(f'Restored temperature parameter: {cl.temp = } \t {cl_infer.temp = }')
 
     for epoch in range(last_epoch, n_epochs):
         model_fname = f'model_{epoch+1}.pth'
