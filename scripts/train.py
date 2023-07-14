@@ -310,9 +310,12 @@ def main(cfg: DictConfig):
             cl_infer._temp_step()
             print(f'Restored temperature parameter: {cl.temp = } \t {cl_infer.temp = }')
 
+    save_folder = os.path.join(run.dir, 'models')
+    os.makedirs(save_folder, exist_ok=True)
+
     for epoch in range(last_epoch, n_epochs):
         model_fname = f'model_{epoch+1}.pth'
-        model_path = os.path.join(run.dir, model_fname)
+        model_path = os.path.join(save_folder, model_fname)
 
         wandb.log({'Training Loss Temperature': cl.temp,
                    'Validation Loss Temperature': cl_infer.temp})
@@ -341,8 +344,7 @@ def main(cfg: DictConfig):
         }
 
         torch.save(model_info, model_path)
-
-        wandb.save(os.path.join(run.dir, "./model*.pth"))
+        wandb.save(os.path.join(save_folder, "./model*.pth"))
 
     # Final Validation loop
 
