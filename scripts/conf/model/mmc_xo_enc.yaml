@@ -19,4 +19,5 @@ model_file: null
 
 restore_model: True
 restore_optimizer: False
+restore_scheduler: True
 restore_mb: False

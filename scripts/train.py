@@ -293,7 +293,7 @@ def main(cfg: DictConfig):
         ckpt = torch.load(run.restore(name=cfg.model.model_file, run_path=cfg.model.run_path).name)
         print(f'{enc.load_state_dict(ckpt["enc"], strict=False) = }') if cfg.model.restore_model else print("Not restoring model parameters.")
         print(f'{optimizer.load_state_dict(ckpt["optimizer"]) = }') if cfg.model.restore_optimizer else print("Not restoring optimizer parameters.")
-        print(f'{lr_scheduler.load_state_dict(ckpt["lr_scheduler"]) = }') if cfg.model.restore_optimizer else print("Not restoring learning rate scheduler parameters.")
+        print(f'{lr_scheduler.load_state_dict(ckpt["lr_scheduler"]) = }') if cfg.model.lr_scheduler else print("Not restoring learning rate scheduler parameters.")
         print(f'{mb.load_state_dict(ckpt["mb"]) = }') if cfg.model.restore_mb else print("Not restoring memory bank parameters.")
         print(f'{mb_infer.load_state_dict(ckpt["mb_infer"]) = }') if cfg.model.restore_mb else print("Not restoring memory bank parameters.")
 
