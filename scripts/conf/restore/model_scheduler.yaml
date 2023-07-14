@@ -2,4 +2,4 @@ restore_model: True
 restore_optimizer: False
 restore_scheduler: True
 restore_mb: True
-restore_loss_t: True
+restore_loss_t: False
