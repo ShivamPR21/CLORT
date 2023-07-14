@@ -1,13 +1,13 @@
-info: "MMC XO Encoder : MultiModal Context Encoder w/ CrossObject awareness at lower level"
+info: "MMC Encoder : MultiModal Context Encoder"
 ## MV Encoder
 mv_features: 256
-mv_xo: True
+mv_xo: False
 ## PC Encoder
 pc_features: 256
-pc_xo: True
+pc_xo: False
 ## MM Encoder
 mm_features: 256
-mm_xo: True
+mm_xo: False
 ## MMC Encoder
 mmc_features: 256
 
@@ -19,5 +19,5 @@ model_file: null
 
 restore_model: True
 restore_optimizer: False
-restore_scheduler: False
+restore_scheduler: True
 restore_mb: False
