@@ -16,8 +16,3 @@ device: 'cuda'
 restore: False
 run_path: null
 model_file: null
-
-restore_model: True
-restore_optimizer: False
-restore_scheduler: False
-restore_mb: False

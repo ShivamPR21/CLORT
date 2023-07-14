@@ -291,11 +291,11 @@ def main(cfg: DictConfig):
     if cfg.model.restore:
         print(f'Loading model from file: {cfg.model.model_file = } \t {cfg.model.run_path = }')
         ckpt = torch.load(run.restore(name=cfg.model.model_file, run_path=cfg.model.run_path).name)
-        print(f'{enc.load_state_dict(ckpt["enc"], strict=False) = }') if cfg.model.restore_model else print("Not restoring model parameters.")
-        print(f'{optimizer.load_state_dict(ckpt["optimizer"]) = }') if cfg.model.restore_optimizer else print("Not restoring optimizer parameters.")
-        print(f'{lr_scheduler.load_state_dict(ckpt["lr_scheduler"]) = }') if cfg.model.restore_scheduler else print("Not restoring learning rate scheduler parameters.")
-        print(f'{mb.load_state_dict(ckpt["mb"]) = }') if cfg.model.restore_mb else print("Not restoring memory bank parameters.")
-        print(f'{mb_infer.load_state_dict(ckpt["mb_infer"]) = }') if cfg.model.restore_mb else print("Not restoring memory bank parameters.")
+        print(f'{enc.load_state_dict(ckpt["enc"], strict=False) = }') if cfg.restore.restore_model else print("Not restoring model parameters.")
+        print(f'{optimizer.load_state_dict(ckpt["optimizer"]) = }') if cfg.restore.restore_optimizer else print("Not restoring optimizer parameters.")
+        print(f'{lr_scheduler.load_state_dict(ckpt["lr_scheduler"]) = }') if cfg.restore.restore_scheduler else print("Not restoring learning rate scheduler parameters.")
+        print(f'{mb.load_state_dict(ckpt["mb"]) = }') if cfg.restore.restore_mb else print("Not restoring memory bank parameters.")
+        print(f'{mb_infer.load_state_dict(ckpt["mb_infer"]) = }') if cfg.restore.restore_mb else print("Not restoring memory bank parameters.")
 
     last_epoch = lr_scheduler.last_epoch
     n_epochs = cfg.optimizer.n_epochs
