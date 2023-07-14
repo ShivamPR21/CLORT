@@ -196,14 +196,16 @@ def main(cfg: DictConfig):
                         image=cfg.dataset.imgs, pcl=cfg.dataset.pcl, bbox=cfg.dataset.bbox_aug)
 
     train_dl = DataLoader(train_dataset, cfg.dataset.batch, shuffle=False,
-                          sampler=ArgoCLSampler(train_dataset, cfg.dataset.shuffle, cfg.model.pc_features is not None),
+                          sampler=ArgoCLSampler(train_dataset, cfg.dataset.shuffle, True),
                           collate_fn=ArgoCl_collate_fxn, num_workers=cfg.dataset.workers,
                           prefetch_factor=cfg.dataset.prefetch, persistent_workers=cfg.dataset.persistent)
 
     val_dl = DataLoader(val_dataset, cfg.dataset.batch, shuffle=False,
-                        sampler=ArgoCLSampler(val_dataset, False, cfg.model.pc_features is not None),
+                        sampler=ArgoCLSampler(val_dataset, False, True),
                         collate_fn=ArgoCl_collate_fxn, num_workers=cfg.dataset.workers,
                         prefetch_factor=cfg.dataset.prefetch, persistent_workers=cfg.dataset.persistent)
+
+    # cfg.model.pc_features is not None
 
     print(f'{len(train_dl) = } \t {len(val_dl) = }')
 
