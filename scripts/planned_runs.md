@@ -17,7 +17,8 @@
 
 ## Running
 
-1. Frozen Run: ```python scripts/train.py 'model.restore=True' 'model.model_file=model_10.pth' 'model.run_path="shivampr21/CLORTJSR/itkorpud"' wb=clortjsr model=mmc_enc dataset=argo loss=loss_v2 mb=five_center val_mb=infer optimizer=optim_base_frozen``` *Loss -> loss_v2 | MB -> five_center | Model -> MMC* [WB-ID: ""](shivampr21/CLORTJSR/)
+1. Frozen Run: ```python scripts/train.py 'model.restore=True' 'model.model_file=model_20.pth' 'model.run_path="shivampr21/CLORTJSR/itkorpud"' wb=clortjsr model=mmc_enc dataset=argo loss=loss_v2 mb=five_center val_mb=infer optimizer=optim_base_frozen``` *Loss -> loss_v2 | MB -> five_center | Model -> MMC* [WB-ID: ""](shivampr21/CLORTJSR/)
+2. Extend Existing Run: ```python scripts/train.py 'wb.resume="must"' 'wb.run_id="4ozpvk21"' 'model.restore=True' 'model.model_file=model_3.pth' 'model.run_path="shivampr21/CLORTJSR/4ozpvk21"' wb=clortjsr model=mmc_enc_ext dataset=argo loss=loss_v2 mb=five_center val_mb=infer optimizer=optim_base_frozen``` *Loss -> loss_v2 | MB -> five_center | Model -> MMC* [WB-ID: ""](shivampr21/CLORTJSR/)
 
 ## Planned
 
