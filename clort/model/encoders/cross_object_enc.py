@@ -41,34 +41,21 @@ class CrossObjectEncoder(nn.Module):
 
         enc_layers = [512, 256, 128]
 
-        # self.gat1 = SelfGraphAttentionLinear(self.in_dim, None, residual=True, dynamic_batching=True)
-        # self.conv1 = GraphConv(self.in_dim, enc_layers[0], bias=True, k=10,
-        #                        reduction='max', features='local+global',
-        #                        norm_layer=norm_layer, activation_layer=activation_layer,
-        #                        dynamic_batching=True, enable_offloading=False)
+        # Block 1
         self.f_p1 = LinearNormActivation(self.in_dim, enc_layers[0],
                                          norm_layer=norm_layer, activation_layer=activation_layer)
         self.xo1 = MinimalCrossObjectEncoder(enc_layers[0], enc_layers[0], k = 10, norm_layer=norm_layer,
                                              activation_layer=activation_layer, similarity='cosine')
         self.p1 = LinearNormActivation(enc_layers[0], enc_layers[0], norm_layer=norm_layer, activation_layer=activation_layer)
 
-        # self.gat2 = SelfGraphAttentionLinear(enc_layers[0], None, residual=True, dynamic_batching=True)
-        # self.conv2 = GraphConv(enc_layers[0], enc_layers[1], bias=True, k=10,
-        #                        reduction='max', features='local+global',
-        #                        norm_layer=norm_layer, activation_layer=activation_layer,
-        #                        dynamic_batching=True, enable_offloading=False)
+        # Block 2
         self.f_p2 = LinearNormActivation(enc_layers[0], enc_layers[1],
                                          norm_layer=norm_layer, activation_layer=activation_layer)
         self.xo2 = MinimalCrossObjectEncoder(enc_layers[1], enc_layers[1], k = 10, norm_layer=norm_layer,
                                              activation_layer=activation_layer, similarity='cosine')
         self.p2 = LinearNormActivation(enc_layers[1], enc_layers[1], norm_layer=norm_layer, activation_layer=activation_layer)
 
-        # self.gat3 = SelfGraphAttentionLinear(enc_layers[1], None, residual=True, dynamic_batching=True)
-        # self.conv3 = GraphConv(enc_layers[1], enc_layers[2], bias=True, k=10,
-        #                        reduction='max', features='local+global',
-        #                        norm_layer=norm_layer, activation_layer=activation_layer,
-        #                        dynamic_batching=True, enable_offloading=False)
-
+        # Block 3
         self.f_p3 = LinearNormActivation(enc_layers[1], enc_layers[2],
                                          norm_layer=norm_layer, activation_layer=activation_layer)
         self.xo3 = MinimalCrossObjectEncoder(enc_layers[2], enc_layers[2], k = 10, norm_layer=norm_layer,

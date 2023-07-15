@@ -128,9 +128,12 @@ class PointCloudEncoder(nn.Module):
                                     offloading=offloading,
                                     enable_xo=enable_xo) if bbox_aug else None
 
-        self.projection_head = LinearNormActivation(64*4 + (64 if bbox_aug else 0), out_dims, bias=True, activation_layer=None)
+        self.projection_head1 = LinearNormActivation(64*4 + (64 if bbox_aug else 0), 512, bias=True,
+                                                     norm_layer=norm_layer, activation_layer=activation_layer)
 
-        self.out_dim = (64*4 + (64 if bbox_aug else 0)) if self.features_only else out_dims
+        self.projection_head2 = LinearNormActivation(512, out_dims, bias=True, norm_layer=None, activation_layer=None)
+
+        self.out_dim = 512 if self.features_only else out_dims
 
     def aggregate(self, f: torch.Tensor, sz_arr: List[List[int]]) -> torch.Tensor:
         out = torch.zeros((len(sz_arr), f.shape[-1]), dtype=torch.float32, device=f.device)
@@ -171,8 +174,10 @@ class PointCloudEncoder(nn.Module):
         f_bbox = self.bbox_enc(bbox, n_objects) if bbox is not None and self.bbox_enc is not None else None
         f = torch.cat([f, f_bbox], dim=1) if f_bbox is not None else f
 
+        f = self.projection_head1(f)
+
         if not self.features_only:
-            f = self.projection_head(f)
+            f = self.projection_head2(f)
 
             f = f/(f.norm(dim=1, keepdim=True) + self.eps)
 
