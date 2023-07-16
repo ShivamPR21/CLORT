@@ -7,6 +7,6 @@ separation: "elements"
 global_horizon: True
 sim_type: "dot"
 temperature_adaptation_policy: null # "gradual_increase"
-t_inc_coeff: 0.005
-max_t: 0.15
+t_inc_coeff: 0.00625
+max_t: 0.1
 pivot: 0.0
