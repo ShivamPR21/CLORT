@@ -9,16 +9,22 @@
 5. ```python scripts/train.py wb=clortjsr model=mv_enc dataset=argo_mv loss=basic mb=three_center_orthogonal_distributed val_mb=infer optimizer=optim``` **Loss -> basic | MB -> three_center_orthogonal_distributed | Model -> MV** [WB-ID: "bc9yx4zk"](shivampr21/CLORTJSR/bc9yx4zk)
 6. ```python scripts/train.py wb=clortjsr model=mv_enc dataset=argo_mv loss=loss_v1 mb=five_center val_mb=infer optimizer=optim``` **Loss -> loss_v1 | MB -> five_center | Model -> MV** [WB-ID: "7fywl9ia"](shivampr21/CLORTJSR/7fywl9ia)
 7. ```python scripts/train.py wb=clortjsr model=mv_enc dataset=argo_mv loss=loss_v2 mb=five_center val_mb=infer optimizer=optim``` **Loss -> loss_v2 | MB -> five_center | Model -> MV** [WB-ID: "psc7fvlb"](shivampr21/CLORTJSR/psc7fvlb)
-8. ```python scripts/train.py wb=clortjsr model=mm_enc dataset=argo loss=loss_v2 mb=five_center val_mb=infer optimizer=optim``` **Loss -> loss_v2 | MB -> five_center | Model -> MM** [WB-ID: "itkorpud"](shivampr21/CLORTJSR/itkorpud)
+8. ```python scripts/train.py wb=clortjsr model=mm_enc dataset=argo loss=loss_v2 mb=five_center val_mb=infer optimizer=optim restore=none``` **Loss -> loss_v2 | MB -> five_center | Model -> MM** [WB-ID: "r4722tp1"](shivampr21/CLORTJSR/r4722tp1)
 
 ## Extended Run
 
 1. ```python scripts/train.py 'wb.resume="must"' 'wb.run_id="itkorpud"' 'model.restore=True' 'model.model_file=model_10.pth' 'model.run_path="shivampr21/CLORTJSR/itkorpud"' wb=clortjsr model=mm_enc dataset=argo loss=loss_v2 mb=five_center val_mb=infer optimizer=extended_run_20``` **Loss -> loss_v2 | MB -> five_center | Model -> MM** [WB-ID: "itkorpud"](shivampr21/CLORTJSR/itkorpud)
+2. Extended Separate run on "r4722tp1": ```python scripts/train.py 'model.restore=True' 'model.model_file=model_10.pth' 'model.run_path="shivampr21/CLORTJSR/r4722tp1"' 'loss.t_inc_coeff=0.0005' wb=clortjsr model=mm_enc dataset=argo loss=loss_v2_1 mb=five_center val_mb=infer optimizer=extended_run_20 restore=complete_no_t``` **Loss -> loss_v2_1 | MB -> five_center | Model -> MM** [WB-ID: "pbi1ca5m"](shivampr21/CLORTJSR/pbi1ca5m)
+
+## Deprecated
+
+1. ```python scripts/train.py wb=clortjsr model=mm_enc dataset=argo loss=loss_v2 mb=five_center val_mb=infer optimizer=optim``` **Loss -> loss_v2 | MB -> five_center | Model -> MM** [WB-ID: "itkorpud"](shivampr21/CLORTJSR/itkorpud)
+2. ```python scripts/train.py 'model.restore=True' 'model.model_file=model_20.pth' 'model.run_path="shivampr21/CLORTJSR/itkorpud"' wb=clortjsr model=mmc_enc dataset=argo loss=loss_v2 mb=five_center val_mb=infer optimizer=optim_base_frozen restore=model``` **Loss -> loss_v2 | MB -> five_center | Model -> MMC** [WB-ID: "7t8sm6j8"](shivampr21/CLORTJSR/7t8sm6j8)
+
 
 ## Running
 
-1. Frozen Run: ```python scripts/train.py 'model.restore=True' 'model.model_file=model_20.pth' 'model.run_path="shivampr21/CLORTJSR/itkorpud"' wb=clortjsr model=mmc_enc dataset=argo loss=loss_v2 mb=five_center val_mb=infer optimizer=optim_base_frozen``` *Loss -> loss_v2 | MB -> five_center | Model -> MMC* [WB-ID: ""](shivampr21/CLORTJSR/)
-<!-- 2. Extend Existing Run: ```python scripts/train.py 'wb.resume="must"' 'wb.run_id="4ozpvk21"' 'model.restore=True' 'model.model_file=model_3.pth' 'model.run_path="shivampr21/CLORTJSR/4ozpvk21"' wb=clortjsr model=mmc_enc_ext dataset=argo loss=loss_v2 mb=five_center val_mb=infer optimizer=optim_base_frozen``` *Loss -> loss_v2 | MB -> five_center | Model -> MMC* [WB-ID: ""](shivampr21/CLORTJSR/) -->
+1. Base frozen training of MMC encoder on MM fine tuned model "pbi1ca5m" "model_20.pth": ```python scripts/train.py 'model.restore=True' 'model.model_file=model_20.pth' 'model.run_path="shivampr21/CLORTJSR/pbi1ca5m"' wb=clortjsr model=mmc_enc dataset=argo loss=loss_v2_1 mb=five_center val_mb=infer optimizer=optim_base_frozen restore=model``` **Loss -> loss_v2_1 | MB -> five_center | Model -> MMC** [WB-ID: ""](shivampr21/CLORTJSR/)
 
 ## Planned
 

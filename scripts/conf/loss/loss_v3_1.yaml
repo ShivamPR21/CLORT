@@ -1,5 +1,5 @@
 # Loss Function Information
-temperature: 0.025
+temperature: 0.05
 static_contrast: True
 soft_condition: True
 global_contrast: True
@@ -7,6 +7,6 @@ separation: "tracks"
 global_horizon: True
 sim_type: "dot"
 temperature_adaptation_policy: null # "gradual_increase"
-t_inc_coeff: 0.005625
+t_inc_coeff: 0.0025
 max_t: 0.07
 pivot: 0.0
