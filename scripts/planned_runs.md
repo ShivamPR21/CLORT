@@ -10,6 +10,8 @@
 6. ```python scripts/train.py wb=clortjsr model=mv_enc dataset=argo_mv loss=loss_v1 mb=five_center val_mb=infer optimizer=optim``` **Loss -> loss_v1 | MB -> five_center | Model -> MV** [WB-ID: "7fywl9ia"](shivampr21/CLORTJSR/7fywl9ia)
 7. ```python scripts/train.py wb=clortjsr model=mv_enc dataset=argo_mv loss=loss_v2 mb=five_center val_mb=infer optimizer=optim``` **Loss -> loss_v2 | MB -> five_center | Model -> MV** [WB-ID: "psc7fvlb"](shivampr21/CLORTJSR/psc7fvlb)
 8. ```python scripts/train.py wb=clortjsr model=mm_enc dataset=argo loss=loss_v2 mb=five_center val_mb=infer optimizer=optim restore=none``` **Loss -> loss_v2 | MB -> five_center | Model -> MM** [WB-ID: "r4722tp1"](shivampr21/CLORTJSR/r4722tp1)
+9. Base frozen training of MMC encoder on MM fine tuned model "pbi1ca5m" "model_20.pth": ```python scripts/train.py 'model.restore=True' 'model.model_file=model_20.pth' 'model.run_path="shivampr21/CLORTJSR/pbi1ca5m"' wb=clortjsr model=mmc_enc dataset=argo loss=loss_v2_1 mb=five_center val_mb=infer optimizer=optim_base_frozen restore=model``` **Loss -> loss_v2_1 | MB -> five_center | Model -> MMC** [WB-ID: "45xt24wt"](shivampr21/CLORTJSR/45xt24wt)
+10. ```python scripts/train.py 'loss.t_inc_coeff=0.001' wb=clortjsr model=mv_xo_enc dataset=argo_mv loss=loss_v2_1 mb=five_center val_mb=infer optimizer=optim restore=none``` **Loss -> loss_v2 | MB -> five_center | Model -> MV-XO** [WB-ID: "saa7dijm"](shivampr21/CLORTJSR/saa7dijm)
 
 ## Extended Run
 
@@ -21,10 +23,9 @@
 1. ```python scripts/train.py wb=clortjsr model=mm_enc dataset=argo loss=loss_v2 mb=five_center val_mb=infer optimizer=optim``` **Loss -> loss_v2 | MB -> five_center | Model -> MM** [WB-ID: "itkorpud"](shivampr21/CLORTJSR/itkorpud)
 2. ```python scripts/train.py 'model.restore=True' 'model.model_file=model_20.pth' 'model.run_path="shivampr21/CLORTJSR/itkorpud"' wb=clortjsr model=mmc_enc dataset=argo loss=loss_v2 mb=five_center val_mb=infer optimizer=optim_base_frozen restore=model``` **Loss -> loss_v2 | MB -> five_center | Model -> MMC** [WB-ID: "7t8sm6j8"](shivampr21/CLORTJSR/7t8sm6j8)
 
-
 ## Running
 
-1. Base frozen training of MMC encoder on MM fine tuned model "pbi1ca5m" "model_20.pth": ```python scripts/train.py 'model.restore=True' 'model.model_file=model_20.pth' 'model.run_path="shivampr21/CLORTJSR/pbi1ca5m"' wb=clortjsr model=mmc_enc dataset=argo loss=loss_v2_1 mb=five_center val_mb=infer optimizer=optim_base_frozen restore=model``` **Loss -> loss_v2_1 | MB -> five_center | Model -> MMC** [WB-ID: ""](shivampr21/CLORTJSR/)
+1. MV frozen training of MM encoder on MV model "saa7dijm" "model_10.pth": ```python scripts/train.py 'model.restore=True' 'model.model_file=model_10.pth' 'model.run_path="shivampr21/CLORTJSR/saa7dijm"' 'loss.t_inc_coeff=0.001' wb=clortjsr model=mm_xo_enc dataset=argo loss=loss_v2_1 mb=five_center val_mb=infer optimizer=optim_mv_frozen restore=model``` **Loss -> loss_v2_1 | MB -> five_center | Model -> MM-XO** [WB-ID: ""](shivampr21/CLORTJSR/)
 
 ## Planned
 
