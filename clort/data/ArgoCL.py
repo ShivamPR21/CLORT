@@ -314,6 +314,10 @@ def ArgoCl_collate_fxn(batch:Any):
         [], [], [], [], [], [], [], [], []
 
     for sample in batch:
+
+        if len(sample[5]) == 0:
+            continue
+
         if isinstance(sample[0], torch.Tensor):
             pcls.append(sample[0])
         if isinstance(sample[1], np.ndarray):
@@ -329,6 +333,9 @@ def ArgoCl_collate_fxn(batch:Any):
         cls_idxs.append(sample[6])
         frame_sz.append(sample[7])
         sample_sz.append(np.sum(sample[7]))
+
+    if len(track_idxs) == 0:
+        return pcls, pcls_sz, imgs, imgs_sz, bboxs, track_idxs, cls_idxs, frame_sz, sample_sz
 
     pcls = torch.cat(pcls, dim=0) if len(pcls) != 0 else []
     pcls_sz = np.concatenate(pcls_sz, axis=0, dtype=np.uint16) if len(pcls_sz) != 0 else []
