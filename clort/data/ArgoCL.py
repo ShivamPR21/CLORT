@@ -46,8 +46,8 @@ class ArgoCL(Dataset):
         self.pvff = pivot_to_first_frame
         self.vt = vision_transform
         self.pcl_tr = pcl_transform
-        self.obj_cls : List[str] = []
         self.tgt_cls = target_cls
+        self.obj_cls : List[str] = target_cls if target_cls is not None else []
 
         # Get all log files
         self.log_files: List[h5py.File | h5py.Group] = []
@@ -99,6 +99,9 @@ class ArgoCL(Dataset):
 
                 if track_id not in tracks and (self.tgt_cls is None or obj_cls in self.tgt_cls):
                     tracks.append(track_id)
+
+                if (self.tgt_cls is None) and (obj_cls not in self.obj_cls):
+                    self.obj_cls.append(obj_cls)
 
         return tracks
 
@@ -176,12 +179,7 @@ class ArgoCL(Dataset):
             if self.tgt_cls is not None and obj_cls not in self.tgt_cls:
                 continue
 
-            cls_idx = -1
-            try:
-                cls_idx = self.obj_cls.index(obj_cls)
-            except ValueError:
-                self.obj_cls.append(obj_cls)
-                cls_idx = len(self.obj_cls)-1
+            cls_idx = self.obj_cls.index(obj_cls)
 
             det_data.update(
                 {'cls_idx' : cls_idx}

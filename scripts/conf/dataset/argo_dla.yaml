@@ -1,0 +1,26 @@
+# Dataset
+root: "/home/lidar-workstation/CLORT/ArgoCL"
+train_splits: ["train1", "train2", "train3", "train4"]
+val_splits: ["val"]
+max_objects: null
+target_cls: null
+distance_threshold: null
+temporal_horizon: 4
+temporal_overlap: 0
+bbox_aug: False
+imgs: True
+pcl: False
+global_frame: True,
+pivot_to_first_frame: False,
+img_shape: [128, 128]
+pcl_quant: [100, 200]
+pcl_scale: 100.0
+img_aug_prob: 0.3
+pc_aug_prob: 0.3
+
+# Dataloader
+batch: 4
+shuffle: True
+persistent: True
+workers: 8
+prefetch: 8

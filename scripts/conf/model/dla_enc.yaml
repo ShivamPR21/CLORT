@@ -1,0 +1,8 @@
+info: "DLA34 Encoder : SingleView Encoder w/ Max aggregation"
+sv_enc: 256
+
+device: 'cuda'
+
+restore: False
+run_path: null
+model_file: null

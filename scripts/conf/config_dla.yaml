@@ -1,0 +1,9 @@
+defaults:
+  - wb: clort
+  - model: mv_enc
+  - dataset: argo_mv
+  - loss: basic
+  - mb: single_center
+  - val_mb: infer
+  - optimizer: optim
+  - restore: none

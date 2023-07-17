@@ -3,13 +3,13 @@ root: "/home/lidar-workstation/CLORT/ArgoCL"
 train_splits: ["train1", "train2", "train3", "train4"]
 val_splits: ["val"]
 max_objects: null
-target_cls: null
+target_cls: ["PEDESTRIAN", "BICYCLE", "ON_ROAD_OBSTACLE"]
 distance_threshold: null
-temporal_horizon: 4
+temporal_horizon: 8
 temporal_overlap: 0
-bbox_aug: True
-imgs: False
-pcl: True
+bbox_aug: False
+imgs: True
+pcl: False
 global_frame: True,
 pivot_to_first_frame: False,
 img_shape: [112, 112]
@@ -19,7 +19,7 @@ img_aug_prob: 0.3
 pc_aug_prob: 0.3
 
 # Dataloader
-batch: 4
+batch: 8
 shuffle: True
 persistent: True
 workers: 8

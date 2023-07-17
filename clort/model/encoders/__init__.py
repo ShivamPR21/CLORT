@@ -1,6 +1,6 @@
 from .cross_object_enc import CrossObjectEncoder, MinimalCrossObjectEncoder
 from .mmEnc import MultiModalEncoder
-from .mvEnc import MultiViewEncoder
+from .mvEnc import DLA34Encoder, MultiViewEncoder
 from .pcEnc import PCLGaussianNoise, PCLRigidTransformNoise, PointCloudEncoder
 
 __all__ = ('MultiModalEncoder',
@@ -9,4 +9,5 @@ __all__ = ('MultiModalEncoder',
             'MultiViewEncoder',
             'PointCloudEncoder',
             'PCLGaussianNoise',
-            'PCLRigidTransformNoise')
+            'PCLRigidTransformNoise',
+            'DLA34Encoder')

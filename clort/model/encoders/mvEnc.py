@@ -11,8 +11,43 @@ from moduleZoo.resblocks import (
     ConvInvertedResidualBlock2d,
     ConvResidualBlock2d,
 )
+from timm import create_model
 
 from . import MinimalCrossObjectEncoder
+
+
+class DLA34Encoder(nn.Module):
+
+    def __init__(self, img_shape = (128, 128), out_dim: int = 256) -> None:
+        super().__init__()
+
+        self.enc = create_model('dla34', pretrained=False, features_only=True)
+
+        self.max_pool = nn.AdaptiveMaxPool2d((1, 1))
+
+        self.linear1 = LinearNormActivation(32+64+128+256+512, out_dim*2,
+                                            norm_layer=nn.BatchNorm1d, activation_layer=nn.ReLU)
+
+        self.linear2 = LinearNormActivation(out_dim*2, out_dim,
+                                            norm_layer=None, activation_layer=None)
+
+        self.out_dim = out_dim
+
+    def forward(self, x: torch.Tensor, img_sz: np.ndarray) -> torch.Tensor:
+        enc1, enc2, enc3, enc4, enc5 = self.enc(x)
+        enc1, enc2, enc3, enc4, enc5 = self.max_pool(enc1).flatten(1), self.max_pool(enc2).flatten(1), \
+            self.max_pool(enc3).flatten(1), self.max_pool(enc4).flatten(1), self.max_pool(enc5).flatten(1)
+
+        enc = torch.cat([enc1, enc2, enc3, enc4, enc5], dim=1)
+
+        enc = self.linear1(enc)
+        enc = self.linear2(enc)
+
+        enc = torch.cat([spl.max(dim=1, keepdim=True).values for spl in torch.split(enc, img_sz.tolist())], dim=1)
+
+        enc = enc/(enc.norm(dim=1, keepdim=True)+1e-9)
+
+        return enc
 
 
 class CrossViewAttention(SelfGraphAttentionLinear):

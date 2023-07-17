@@ -27,7 +27,7 @@
 
 ## Running
 
-1. Reverse MV-XO extended run on MMC-XO encoder model "9hvm4idq" "models/model_10.pth" ```python scripts/train.py 'model.restore=True' 'model.model_file=models/model_10.pth' 'model.run_path="shivampr21/CLORTJSR/9hvm4idq"' 'loss.t_inc_coeff=0.001' wb=clortjsr model=mv_xo_enc dataset=argo loss=loss_v2_1_no_stc mb=five_center val_mb=infer optimizer=optim_reverse_mv_ext_15.yaml restore=model``` **Loss -> loss_v2_1_no_stc | MB -> five_center | Model -> MV-XO** [WB-ID: ""](shivampr21/CLORTJSR/)
+1. Reverse MV-XO extended run on MMC-XO encoder model "9hvm4idq" "models/model_10.pth" ```python scripts/train.py 'model.restore=True' 'model.model_file=models/model_10.pth' 'model.run_path="shivampr21/CLORTJSR/9hvm4idq"' 'loss.t_inc_coeff=0.001' wb=clortjsr model=mv_xo_enc dataset=argo loss=loss_v2_1_no_stc mb=five_center val_mb=infer optimizer=optim_reverse_mv_ext_15.yaml restore=complete_no_mb_opt``` **Loss -> loss_v2_1_no_stc | MB -> five_center | Model -> MV-XO** [WB-ID: ""](shivampr21/CLORTJSR/)
 
 ## Planned
 
