@@ -1,0 +1,8 @@
+# Optimizer
+lr: [0.00005]
+w_decay: [0.0005]
+lr_decay: 0.9
+decay_step: 1
+n_epochs: 15
+log_freq: 20
+val_freq: 3

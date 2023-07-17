@@ -254,18 +254,25 @@ def main(cfg: DictConfig):
     print(f'{cfg.optimizer.lr = } \t {cfg.optimizer.w_decay = }')
 
     if isinstance(cfg.optimizer.lr, ListConfig):
-        assert (len(cfg.optimizer.lr) == 4)
-        assert (len(cfg.optimizer.w_decay) == 4)
+        n_lr_w = 1
+        if enc.mmc_enc is not None:
+            n_lr_w = 4
+        elif enc.mmc_enc is not None:
+            n_lr_w = 3
+        else:
+            n_lr_w = 1
+        assert (len(cfg.optimizer.lr) >= n_lr_w and len(cfg.optimizer.lr) <= 4)
+        assert (len(cfg.optimizer.w_decay) >= n_lr_w and len(cfg.optimizer.w_decay) <= 4)
 
         global_lr = cfg.optimizer.lr[0]
         global_w_decay = cfg.optimizer.w_decay[0]
         # Level 1
         if enc.mv_enc is not None:
             params.append({'params' : enc.mv_enc.parameters(), 'lr': cfg.optimizer.lr[0], "weight_decay": cfg.optimizer.w_decay[0]})
-        if enc.pc_enc is not None:
-            params.append({'params' : enc.pc_enc.parameters(), 'lr': cfg.optimizer.lr[1], "weight_decay": cfg.optimizer.w_decay[1]})
 
         # Level 2
+        if enc.pc_enc is not None:
+            params.append({'params' : enc.pc_enc.parameters(), 'lr': cfg.optimizer.lr[1], "weight_decay": cfg.optimizer.w_decay[1]})
         if enc.mm_enc is not None:
             params.append({'params' : enc.mm_enc.parameters(), 'lr': cfg.optimizer.lr[2], "weight_decay": cfg.optimizer.w_decay[2]})
 
