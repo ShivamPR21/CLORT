@@ -257,7 +257,7 @@ def main(cfg: DictConfig):
         n_lr_w = 1
         if enc.mmc_enc is not None:
             n_lr_w = 4
-        elif enc.mmc_enc is not None:
+        elif enc.mm_enc is not None:
             n_lr_w = 3
         else:
             n_lr_w = 1
