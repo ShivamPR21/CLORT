@@ -331,16 +331,16 @@ def ArgoCl_collate_fxn(batch:Any):
         sample_sz.append(np.sum(sample[7]))
 
     pcls = torch.cat(pcls, dim=0) if len(pcls) != 0 else []
-    pcls_sz = np.concatenate(pcls_sz, axis=0) if len(pcls_sz) != 0 else []
+    pcls_sz = np.concatenate(pcls_sz, axis=0, dtype=np.uint16) if len(pcls_sz) != 0 else []
 
     imgs = torch.cat(imgs, dim=0) if len(imgs) != 0 else []
-    imgs_sz = np.concatenate(imgs_sz, axis=0) if len(imgs_sz) != 0 else []
+    imgs_sz = np.concatenate(imgs_sz, axis=0, dtype=np.uint8) if len(imgs_sz) != 0 else []
 
     bboxs = torch.cat(bboxs, dim=0) if len(bboxs) != 0 else []
 
-    track_idxs = np.concatenate(track_idxs, axis=0)
-    cls_idxs = np.concatenate(cls_idxs, axis=0)
-    frame_sz = np.concatenate(frame_sz, axis=0)
+    track_idxs = np.concatenate(track_idxs, axis=0, dtype=np.uint16)
+    cls_idxs = np.concatenate(cls_idxs, axis=0, dtype=np.uint8)
+    frame_sz = np.concatenate(frame_sz, axis=0, dtype=np.uint16)
     sample_sz = np.array(sample_sz, dtype=int)
 
     return pcls, pcls_sz, imgs, imgs_sz, bboxs, track_idxs, cls_idxs, frame_sz, sample_sz
