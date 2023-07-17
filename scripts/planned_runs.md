@@ -25,7 +25,8 @@
 
 ## Running
 
-1. MV frozen training of MM encoder on MV model "saa7dijm" "model_10.pth": ```python scripts/train.py 'model.restore=True' 'model.model_file=model_10.pth' 'model.run_path="shivampr21/CLORTJSR/saa7dijm"' 'loss.t_inc_coeff=0.001' wb=clortjsr model=mm_xo_enc dataset=argo loss=loss_v2_1 mb=five_center val_mb=infer optimizer=optim_mv_frozen restore=model``` **Loss -> loss_v2_1 | MB -> five_center | Model -> MM-XO** [WB-ID: ""](shivampr21/CLORTJSR/)
+1. MV frozen training of MM-XO encoder on MV-XO model "saa7dijm" "model_10.pth": ```python scripts/train.py 'model.restore=True' 'model.model_file=model_10.pth' 'model.run_path="shivampr21/CLORTJSR/saa7dijm"' 'loss.t_inc_coeff=0.001' wb=clortjsr model=mm_xo_enc dataset=argo loss=loss_v2_1 mb=five_center val_mb=infer optimizer=optim_mv_frozen restore=model``` **Loss -> loss_v2_1 | MB -> five_center | Model -> MM-XO** [WB-ID: "zzw260si"](shivampr21/CLORTJSR/zzw260si)
+2. MM frozen training of MMC-XO encoder on MV model "zzw260si" "model_10.pth": ```python scripts/train.py 'model.restore=True' 'model.model_file=model_10.pth' 'model.run_path="shivampr21/CLORTJSR/zzw260si"' 'loss.t_inc_coeff=0.001' wb=clortjsr model=mmc_xo_enc dataset=argo loss=loss_v2_1 mb=five_center val_mb=infer optimizer=optim_mm_frozen restore=model``` **Loss -> loss_v2_1 | MB -> five_center | Model -> MM-XO* [WB-ID: ""](shivampr21/CLORTJSR/)
 
 ## Planned
 
