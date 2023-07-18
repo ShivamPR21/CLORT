@@ -43,7 +43,6 @@ class DLA34Encoder(nn.Module):
         enc = self.linear1(enc)
         enc = self.linear2(enc)
 
-        print(f'{enc.shape = }')
         enc = torch.cat([spl.max(dim=0, keepdim=True).values for spl in enc.split(img_sz.tolist(), dim=0)], dim=0)
 
         enc = enc/(enc.norm(dim=1, keepdim=True)+1e-9)
