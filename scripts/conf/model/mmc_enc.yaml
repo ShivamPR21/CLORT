@@ -1,5 +1,6 @@
 info: "MMC Encoder : MultiModal Context Encoder"
 ## MV Encoder
+mv_backbone: "small"
 mv_features: 256
 mv_xo: False
 ## PC Encoder

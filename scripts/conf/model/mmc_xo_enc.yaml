@@ -1,5 +1,6 @@
 info: "MMC XO Encoder : MultiModal Context Encoder w/ CrossObject awareness at lower level"
 ## MV Encoder
+mv_backbone: "small"
 mv_features: 256
 mv_xo: True
 ## PC Encoder

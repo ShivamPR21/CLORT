@@ -6,6 +6,7 @@ import torch.nn as nn
 
 from .encoders import (
     CrossObjectEncoder,
+    DLA34EncoderMV,
     MultiModalEncoder,
     MultiViewEncoder,
     PointCloudEncoder,
@@ -14,7 +15,7 @@ from .encoders import (
 
 class CLModel(nn.Module):
 
-    def __init__(self, mv_features: int | None = None, mv_xo: bool = False,
+    def __init__(self, mv_backbone: str = 'small', mv_features: int | None = None, mv_xo: bool = False,
                  pc_features: int | None = None, bbox_aug: bool = True, pc_xo: bool = False,
                  mm_features: int | None = None, mm_xo: bool = False,
                  mmc_features: int | None = None) -> None:
@@ -36,11 +37,18 @@ class CLModel(nn.Module):
               f'{pc_xo = } \t {mm_features = } \t {mm_xo = } \t {mmc_features = }')
         print(f'Model Out Dims: {self.out_dim = }')
 
-        self.mv_enc = MultiViewEncoder(out_dim=mv_features,
-                                       norm_2d=nn.InstanceNorm2d,
-                                       norm_1d=nn.LayerNorm,
-                                       enable_xo=mv_xo,
-                                       features_only=mm_features is not None or mmc_features is not None) if mv_features is not None else None
+        self.mv_enc = None
+        if mv_backbone == 'dla':
+            self.mv_enc = DLA34EncoderMV(out_dim=mv_features, enable_mv=True, enable_xo=mv_xo,
+                                         features_only=mm_features is not None or mmc_features is not None) if mv_features is not None else None
+        else:
+            assert(mv_backbone in ['small', 'medium', 'large'])
+            self.mv_enc = MultiViewEncoder(out_dim=mv_features,
+                                            norm_2d=nn.InstanceNorm2d,
+                                            norm_1d=nn.LayerNorm,
+                                            enable_xo=mv_xo,
+                                            features_only=mm_features is not None or mmc_features is not None,
+                                            size=mv_backbone) if mv_features is not None else None
 
         self.pc_enc = PointCloudEncoder(out_dims=pc_features, bbox_aug=bbox_aug,
                                         norm_layer=nn.LayerNorm, activation_layer=nn.SELU,

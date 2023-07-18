@@ -12,7 +12,7 @@ imgs: True
 pcl: True
 global_frame: True,
 pivot_to_first_frame: False,
-img_shape: [112, 112]
+img_shape: [128, 128]
 pcl_quant: [100, 200]
 pcl_scale: 100.0
 img_aug_prob: 0.3

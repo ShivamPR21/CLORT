@@ -210,8 +210,8 @@ def main(cfg: DictConfig):
     print(f'{len(train_dl) = } \t {len(val_dl) = }')
 
     ## Initiate Encoders
-    enc = CLModel(cfg.model.mv_features, cfg.model.mv_xo, cfg.model.pc_features, cfg.dataset.bbox_aug,
-                  cfg.model.pc_xo, cfg.model.mm_features, cfg.model.mm_xo, cfg.model.mmc_features)
+    enc = CLModel(cfg.model.mv_backbone, cfg.model.mv_features, cfg.model.mv_xo, cfg.model.pc_features,
+                  cfg.dataset.bbox_aug, cfg.model.pc_xo, cfg.model.mm_features, cfg.model.mm_xo, cfg.model.mmc_features)
     enc = enc.to(cfg.model.device)
 
     # Initiate MemoryBanks
