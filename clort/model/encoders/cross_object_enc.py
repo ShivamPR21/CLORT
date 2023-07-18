@@ -63,7 +63,7 @@ class CrossObjectEncoder(nn.Module):
         self.p3 = LinearNormActivation(enc_layers[2], enc_layers[2], norm_layer=norm_layer, activation_layer=activation_layer)
 
         self.projection_head1 = LinearNormActivation(np.sum(enc_layers) + enc_layers[0], 512, bias=True,
-                                                    norm_layer=None, activation_layer=None)
+                                                    norm_layer=norm_layer, activation_layer=activation_layer)
 
         self.projection_head2 = LinearNormActivation(512, self.out_dim, bias=True,
                                                     norm_layer=None, activation_layer=None)

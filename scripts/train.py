@@ -205,8 +205,6 @@ def main(cfg: DictConfig):
                         collate_fn=ArgoCl_collate_fxn, num_workers=cfg.dataset.workers,
                         prefetch_factor=cfg.dataset.prefetch, persistent_workers=cfg.dataset.persistent)
 
-    # cfg.model.pc_features is not None
-
     print(f'{len(train_dl) = } \t {len(val_dl) = }')
 
     ## Initiate Encoders
@@ -319,6 +317,14 @@ def main(cfg: DictConfig):
 
     save_folder = os.path.join(run.dir, 'models')
     os.makedirs(save_folder, exist_ok=True)
+
+    # Log model architecture
+    model_arch_file = os.path.join(save_folder, 'model_arch.txt')
+    with open(model_arch_file, 'w') as model_file:
+        for module in enc.modules():
+            if isinstance(module, CLModel):
+                model_file.write(module.__repr__())
+    wandb.save(model_arch_file)
 
     for epoch in range(last_epoch, n_epochs):
         model_fname = f'model_{epoch+1}.pth'

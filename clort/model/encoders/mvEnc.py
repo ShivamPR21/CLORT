@@ -146,6 +146,8 @@ class MultiViewEncoder(nn.Module):
                  size: str = 'small') -> None:
         super().__init__()
 
+        assert(size in ['small', 'medium', 'large'])
+
         self.eps = 1e-9
 
         self.image_shape = image_shape

@@ -37,35 +37,39 @@ class CLModel(nn.Module):
               f'{pc_xo = } \t {mm_features = } \t {mm_xo = } \t {mmc_features = }')
         print(f'Model Out Dims: {self.out_dim = }')
 
+        norm_2d, norm_1d, act = nn.InstanceNorm2d, nn.LayerNorm, nn.SELU
+
         self.mv_enc = None
         if mv_backbone == 'dla':
+            norm_2d, norm_1d, act = nn.BatchNorm2d, nn.BatchNorm1d, nn.ReLU
             self.mv_enc = DLA34EncoderMV(out_dim=mv_features, enable_mv=True, enable_xo=mv_xo,
                                          features_only=mm_features is not None or mmc_features is not None) if mv_features is not None else None
         else:
             assert(mv_backbone in ['small', 'medium', 'large'])
             self.mv_enc = MultiViewEncoder(out_dim=mv_features,
-                                            norm_2d=nn.InstanceNorm2d,
-                                            norm_1d=nn.LayerNorm,
+                                            norm_2d=norm_2d,
+                                            norm_1d=norm_1d,
+                                            activation_layer=act,
                                             enable_xo=mv_xo,
                                             features_only=mm_features is not None or mmc_features is not None,
                                             size=mv_backbone) if mv_features is not None else None
 
         self.pc_enc = PointCloudEncoder(out_dims=pc_features, bbox_aug=bbox_aug,
-                                        norm_layer=nn.LayerNorm, activation_layer=nn.SELU,
+                                        norm_layer=norm_1d, activation_layer=act,
                                         offloading=False, enable_xo=pc_xo,
                                         features_only=mm_features is not None or mmc_features is not None) if pc_features is not None else None
 
         mv_features = self.mv_enc.out_dim if self.mv_enc is not None else mv_features
         pc_features = self.pc_enc.out_dim if self.pc_enc is not None else pc_features
 
-        self.mm_enc = MultiModalEncoder(mv_features, pc_features, mm_features, mm_features, norm_layer=nn.LayerNorm,
-                                        activation_layer=nn.SELU, enable_xo=mm_xo,
+        self.mm_enc = MultiModalEncoder(mv_features, pc_features, mm_features, mm_features, norm_layer=norm_1d,
+                                        activation_layer=act, enable_xo=mm_xo,
                                         features_only=mmc_features is not None) if (mv_features is not None and pc_features is not None and mm_features is not None) else None
 
         mm_features = self.mm_enc.out_dim if self.mm_enc is not None else mm_features
 
-        self.mmc_enc = CrossObjectEncoder(mm_features, mmc_features, norm_layer=nn.LayerNorm,
-                                          activation_layer=nn.SELU) if (mm_features is not None and mmc_features is not None) else None
+        self.mmc_enc = CrossObjectEncoder(mm_features, mmc_features, norm_layer=norm_1d,
+                                          activation_layer=act) if (mm_features is not None and mmc_features is not None) else None
 
         print(f'Final model Config: {mv_features = } \t {mv_xo = } \t {pc_features = } \t {bbox_aug = } \n'
               f'{pc_xo = } \t {mm_features = } \t {mm_xo = } \t {mmc_features = }')
