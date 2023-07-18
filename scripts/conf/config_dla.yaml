@@ -1,9 +1,9 @@
 defaults:
   - wb: clort
-  - model: mv_enc
-  - dataset: argo_mv
-  - loss: basic
-  - mb: single_center
+  - model: dla_enc
+  - dataset: argo_dla
+  - loss: loss_v2
+  - mb: five_center
   - val_mb: infer
-  - optimizer: optim
+  - optimizer: optim_dla
   - restore: none

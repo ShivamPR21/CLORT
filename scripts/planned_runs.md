@@ -15,6 +15,18 @@
 11. MV frozen training of MM-XO encoder on MV-XO model "saa7dijm" "model_10.pth": ```python scripts/train.py 'model.restore=True' 'model.model_file=model_10.pth' 'model.run_path="shivampr21/CLORTJSR/saa7dijm"' 'loss.t_inc_coeff=0.001' wb=clortjsr model=mm_xo_enc dataset=argo loss=loss_v2_1 mb=five_center val_mb=infer optimizer=optim_mv_frozen restore=model``` **Loss -> loss_v2_1 | MB -> five_center | Model -> MM-XO** [WB-ID: "zzw260si"](shivampr21/CLORTJSR/zzw260si)
 12. MM frozen training of MMC-XO encoder on MV model "zzw260si" "model_10.pth": ```python scripts/train.py 'model.restore=True' 'model.model_file=models/model_10.pth' 'model.run_path="shivampr21/CLORTJSR/zzw260si"' 'loss.t_inc_coeff=0.001' wb=clortjsr model=mmc_xo_enc dataset=argo loss=loss_v2_1 mb=five_center val_mb=infer optimizer=optim_mm_frozen restore=model``` **Loss -> loss_v2_1 | MB -> five_center | Model -> MMC-XO** [WB-ID: "9hvm4idq"](shivampr21/CLORTJSR/9hvm4idq)
 13. Reverse MV-XO extended run on MMC-XO encoder model "9hvm4idq" "models/model_10.pth" ```python scripts/train.py 'model.restore=True' 'model.model_file=models/model_10.pth' 'model.run_path="shivampr21/CLORTJSR/9hvm4idq"' 'loss.t_inc_coeff=0.001' wb=clortjsr model=mv_xo_enc dataset=argo loss=loss_v2_1_no_stc mb=five_center val_mb=infer optimizer=optim_reverse_mv_ext_15 restore=complete_no_mb_opt``` **Loss -> loss_v2_1_no_stc | MB -> five_center | Model -> MV-XO** [WB-ID: "pitvljhe"](shivampr21/CLORTJSR/pitvljhe)
+14. FineTune MV-XO extended run on MV-XO encoder model "pitvljhe" "models/model_15.pth" for subclass PEDESTRIAN ```python scripts/train.py 'model.restore=True' 'model.model_file=models/model_15.pth' 'loss.temperature=0.05' 'model.run_path="shivampr21/CLORTJSR/pitvljhe"' 'loss.max_t=0.07' 'loss.t_inc_coeff=0.005' wb=clortjsr model=mv_xo_enc dataset=finetune_pedestrians_mv loss=loss_v2_1 mb=five_center val_mb=infer optimizer=optim_reverse_mv_ext_20 restore=complete_no_mb_opt_t``` **Loss -> loss_v2_1 | MB -> five_center | Model -> MV-XO** [WB-ID: "jdthcp40"](shivampr21/CLORTJSR/jdthcp40)
+15. FineTune MM-XO extended run on MM-XO encoder model "zzw260si" "models/model_10.pth" for subclass PEDESTRIAN ```python scripts/train.py 'model.restore=True' 'model.model_file=models/model_10.pth' 'model.run_path="shivampr21/CLORTJSR/zzw260si"' 'loss.temperature=0.05' 'loss.max_t=0.07' 'loss.t_inc_coeff=0.005' 'optimizer.n_epochs=20' wb=clortjsr model=mm_xo_enc dataset=finetune_pedestrians_mm loss=loss_v2_1 mb=five_center val_mb=infer optimizer=optim_reverse_mm_ext_15 restore=complete_no_mb_opt_t``` **Loss -> loss_v2_1 | MB -> five_center | Model -> MM-XO** [WB-ID: "76y42kmr"](shivampr21/CLORTJSR/76y42kmr)
+16. FineTune MMC-XO extended run on MMC-XO encoder model "9hvm4idq" "models/model_10.pth" for subclass PEDESTRIAN ```python scripts/train.py 'model.restore=True' 'model.model_file=models/model_10.pth' 'model.run_path="shivampr21/CLORTJSR/9hvm4idq"' 'loss.temperature=0.05' 'loss.max_t=0.07' 'loss.t_inc_coeff=0.005' 'optimizer.n_epochs=20' wb=clortjsr model=mmc_xo_enc dataset=finetune_pedestrians_mm loss=loss_v2_1 mb=five_center val_mb=infer optimizer=optim_reverse_mmc_ext_15 restore=complete_no_mb_opt_t``` **Loss -> loss_v2_1 | MB -> five_center | Model -> MMC-XO** [WB-ID: "z4apmyjd"](shivampr21/CLORTJSR/z4apmyjd)
+17. FineTune MV extended run on MV encoder model "psc7fvlb" "models/model_10.pth" for subclass PEDESTRIAN ```python scripts/train.py 'model.restore=True' 'model.model_file=models/model_10.pth' 'model.run_path=shivampr21/CLORTJSR/psc7fvlb' 'loss.temperature=0.05' 'loss.max_t=0.07' 'loss.t_inc_coeff=0.005' 'optimizer.n_epochs=20' wb=clortjsr model=mv_enc dataset=finetune_pedestrians_mv loss=loss_v2_1 mb=five_center val_mb=infer optimizer=optim_reverse_mv_ext_15 restore=complete_no_mb_opt_t``` **Loss -> loss_v2_1 | MB -> five_center | Model -> MV** [WB-ID: "7tmpke1m"](shivampr21/CLORTJSR/7tmpke1m)
+18. FineTune MM extended run on MM encoder model "r4722tp1" "models/model_10.pth" for subclass PEDESTRIAN ```python scripts/train.py 'model.restore=True' 'model.model_file=models/model_10.pth' 'model.run_path=shivampr21/CLORTJSR/r4722tp1' 'loss.temperature=0.05' 'loss.max_t=0.07' 'loss.t_inc_coeff=0.005' 'optimizer.n_epochs=20' wb=clortjsr model=mm_enc dataset=finetune_pedestrians_mm loss=loss_v2_1 mb=five_center val_mb=infer optimizer=optim_reverse_mm_ext_15 restore=complete_no_mb_opt_t``` **Loss -> loss_v2_1 | MB -> five_center | Model -> MM** [WB-ID: "la9s2o0p"](shivampr21/CLORTJSR/la9s2o0p)
+19. FineTune MMC extended run on MMC encoder model "45xt24wt" "models/model_10.pth" for subclass PEDESTRIAN ```python scripts/train.py 'model.restore=True' 'model.model_file=models/model_10.pth' 'model.run_path=shivampr21/CLORTJSR/45xt24wt' 'loss.temperature=0.05' 'loss.max_t=0.07' 'loss.t_inc_coeff=0.005' 'optimizer.n_epochs=20' wb=clortjsr model=mmc_enc dataset=finetune_pedestrians_mm loss=loss_v2_1 mb=five_center val_mb=infer optimizer=optim_reverse_mmc_ext_15 restore=complete_no_mb_opt_t``` **Loss -> loss_v2_1 | MB -> five_center | Model -> MMC** [WB-ID: "ylwa83vi"](shivampr21/CLORTJSR/ylwa83vi)
+
+## Running
+
+1.
+
+## Planned
 
 ## Extended Run
 
@@ -26,19 +38,6 @@
 1. ```python scripts/train.py wb=clortjsr model=mm_enc dataset=argo loss=loss_v2 mb=five_center val_mb=infer optimizer=optim``` **Loss -> loss_v2 | MB -> five_center | Model -> MM** [WB-ID: "itkorpud"](shivampr21/CLORTJSR/itkorpud)
 2. ```python scripts/train.py 'model.restore=True' 'model.model_file=model_20.pth' 'model.run_path="shivampr21/CLORTJSR/itkorpud"' wb=clortjsr model=mmc_enc dataset=argo loss=loss_v2 mb=five_center val_mb=infer optimizer=optim_base_frozen restore=model``` **Loss -> loss_v2 | MB -> five_center | Model -> MMC** [WB-ID: "7t8sm6j8"](shivampr21/CLORTJSR/7t8sm6j8)
 
-## Running
-
-1. Reverse MV-XO extended run on MV-XO encoder model "pitvljhe" "models/model_15.pth" ```python scripts/train.py 'model.restore=True' 'model.model_file=models/model_15.pth' 'model.run_path="shivampr21/CLORTJSR/pitvljhe"' 'loss.t_inc_coeff=0.001' wb=clortjsr model=mv_xo_enc dataset=finetune_pedestrians_mv loss=loss_v2_1_no_stc mb=five_center val_mb=infer optimizer=optim_reverse_mv_ext_20 restore=complete_no_mb_opt``` **Loss -> loss_v2_1_no_stc | MB -> five_center | Model -> MV-XO** [WB-ID: "pitvljhe"](shivampr21/CLORTJSR/pitvljhe)
-
-## Planned
-
-1. ```python scripts/train.py wb=clortjsr model=mv_enc dataset=argo_mv loss=loss_v1 mb=three_center val_mb=infer optimizer=optim``` Loss -> loss_v1 | MB -> three_center | Model -> MV
-2. ```python scripts/train.py wb=clortjsr model=mv_enc dataset=argo_mv loss=loss_v2 mb=three_center val_mb=infer optimizer=optim``` Loss -> loss_v2 | MB -> three_center | Model -> MV
-3. ```python scripts/train.py wb=clortjsr model=mm_enc dataset=argo loss=loss_v1 mb=five_center val_mb=infer optimizer=optim``` Loss -> loss_v1 | MB -> five_center | Model -> MM
-4. ```python scripts/train.py wb=clortjsr model=mmc_enc dataset=argo loss=loss_v1 mb=five_center val_mb=infer optimizer=optim``` Loss -> loss_v1 | MB -> five_center | Model -> MMC
-5. ```python scripts/train.py wb=clortjsr model=mv_xo_enc dataset=argo loss=loss_v1 mb=five_center val_mb=infer optimizer=optim``` Loss -> loss_v1 | MB -> five_center | Model -> MV-XO
-6. ```python scripts/train.py wb=clortjsr model=mm_xo_enc dataset=argo loss=loss_v1 mb=five_center val_mb=infer optimizer=optim``` Loss -> loss_v1 | MB -> five_center | Model -> MM-XO
-7. ```python scripts/train.py wb=clortjsr model=mmc_xo_enc dataset=argo loss=loss_v1 mb=five_center val_mb=infer optimizer=optim``` Loss -> loss_v1 | MB -> five_center | Model -> MMC-XO
 
 ## Templates
 

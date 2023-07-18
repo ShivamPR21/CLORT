@@ -4,7 +4,7 @@ from typing import Any, Dict
 import hydra
 import numpy as np
 import torch
-from omegaconf import DictConfig, ListConfig
+from omegaconf import DictConfig
 from torch.utils.data import DataLoader
 from torchvision.transforms.transforms import ColorJitter, RandomApply
 from tqdm import tqdm
@@ -182,8 +182,7 @@ def main(cfg: DictConfig):
     print(f'{len(train_dl) = } \t {len(val_dl) = }')
 
     ## Initiate Encoders
-    enc = CLModel(cfg.model.mv_features, cfg.model.mv_xo, cfg.model.pc_features, cfg.dataset.bbox_aug,
-                  cfg.model.pc_xo, cfg.model.mm_features, cfg.model.mm_xo, cfg.model.mmc_features)
+    enc = DLA34Encoder(out_dim=cfg.model.sv_enc)
     enc = enc.to(cfg.model.device)
 
     # Initiate MemoryBanks
@@ -218,45 +217,8 @@ def main(cfg: DictConfig):
     print(f'{train_dataset.n_tracks = } \t {val_dataset.n_tracks = }')
 
     # Initialize optimizer
-    optimizer = None
-    params = []
-    global_lr:float = 1e-4
-    global_w_decay:float = 1e-3
-
     print(f'{cfg.optimizer.lr = } \t {cfg.optimizer.w_decay = }')
-
-    if isinstance(cfg.optimizer.lr, ListConfig):
-        n_lr_w = 1
-        if enc.mmc_enc is not None:
-            n_lr_w = 4
-        elif enc.mm_enc is not None:
-            n_lr_w = 3
-        else:
-            n_lr_w = 1
-        assert (len(cfg.optimizer.lr) >= n_lr_w and len(cfg.optimizer.lr) <= 4)
-        assert (len(cfg.optimizer.w_decay) >= n_lr_w and len(cfg.optimizer.w_decay) <= 4)
-
-        global_lr = cfg.optimizer.lr[0]
-        global_w_decay = cfg.optimizer.w_decay[0]
-        # Level 1
-        if enc.mv_enc is not None:
-            params.append({'params' : enc.mv_enc.parameters(), 'lr': cfg.optimizer.lr[0], "weight_decay": cfg.optimizer.w_decay[0]})
-
-        # Level 2
-        if enc.pc_enc is not None:
-            params.append({'params' : enc.pc_enc.parameters(), 'lr': cfg.optimizer.lr[1], "weight_decay": cfg.optimizer.w_decay[1]})
-        if enc.mm_enc is not None:
-            params.append({'params' : enc.mm_enc.parameters(), 'lr': cfg.optimizer.lr[2], "weight_decay": cfg.optimizer.w_decay[2]})
-
-        # Level 3
-        if enc.mmc_enc is not None:
-            params.append({'params' : enc.mmc_enc.parameters(), 'lr': cfg.optimizer.lr[3], "weight_decay": cfg.optimizer.w_decay[3]})
-    else:
-        global_lr = cfg.optimizer.lr
-        global_w_decay = cfg.optimizer.w_decay
-        params.append({'params' : enc.parameters(), 'lr': cfg.optimizer.lr, "weight_decay": cfg.optimizer.w_decay})
-
-    optimizer = torch.optim.AdamW(params=params, lr = global_lr, weight_decay=global_w_decay)
+    optimizer = torch.optim.AdamW(params=enc.parameters(), lr = cfg.optimizer.lr, weight_decay=cfg.optimizer.w_decay)
 
     # Load model from file
     last_epoch = -1
@@ -324,8 +286,6 @@ def main(cfg: DictConfig):
 
         torch.save(model_info, model_path)
         wandb.save(os.path.join(save_folder, "./model*.pth"))
-
-    # Final Validation loop
 
     run.finish()
 
