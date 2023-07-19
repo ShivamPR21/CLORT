@@ -327,7 +327,7 @@ def main(cfg: DictConfig):
     wandb.save(model_arch_file)
 
     for epoch in range(last_epoch, n_epochs):
-        model_fname = f'model_{epoch+1}.pth'
+        model_fname = "model.pth"
         model_path = os.path.join(save_folder, model_fname)
 
         wandb.log({'Training Loss Temperature': cl.temp,
