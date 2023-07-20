@@ -294,10 +294,6 @@ def main(cfg: DictConfig):
     assert(run is not None and mb is not None and mb_infer is not None)
 
     if cfg.model.restore:
-        print("[Warning] : Prior Restore Temporary from id : 45xt24wt")
-        ckpt = torch.load(run.restore(name="models/model_10.pth", run_path="shivampr21/CLORTJSR/45xt24wt", replace=True).name)
-        print(f'{enc.load_state_dict(ckpt["enc"], strict=False) = }') if cfg.restore.restore_model else print("Not restoring model parameters.")
-
         print(f'Loading model from file: {cfg.model.model_file = } \t {cfg.model.run_path = }')
         ckpt = torch.load(run.restore(name=cfg.model.model_file, run_path=cfg.model.run_path, replace=True).name)
         print(f'{enc.load_state_dict(ckpt["enc"], strict=False) = }') if cfg.restore.restore_model else print("Not restoring model parameters.")
