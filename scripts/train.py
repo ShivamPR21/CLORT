@@ -357,7 +357,7 @@ def main(cfg: DictConfig):
         }
 
         torch.save(model_info, model_path)
-        wandb.save(os.path.join(save_folder, "./model*.pth"))
+        wandb.save(os.path.join(save_folder, "./model.pth"))
 
     # Final Validation loop
 
