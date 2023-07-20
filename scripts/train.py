@@ -294,8 +294,12 @@ def main(cfg: DictConfig):
     assert(run is not None and mb is not None and mb_infer is not None)
 
     if cfg.model.restore:
+        print("[Warning] : Prior Restore Temporary from id : r4722tp1")
+        ckpt = torch.load(run.restore(name="models/mdoel_10.pth", run_path="shivampr21/CLORTJSR/r4722tp1", replace=True).name)
+        print(f'{enc.load_state_dict(ckpt["enc"], strict=False) = }') if cfg.restore.restore_model else print("Not restoring model parameters.")
+
         print(f'Loading model from file: {cfg.model.model_file = } \t {cfg.model.run_path = }')
-        ckpt = torch.load(run.restore(name=cfg.model.model_file, run_path=cfg.model.run_path).name)
+        ckpt = torch.load(run.restore(name=cfg.model.model_file, run_path=cfg.model.run_path, replace=True).name)
         print(f'{enc.load_state_dict(ckpt["enc"], strict=False) = }') if cfg.restore.restore_model else print("Not restoring model parameters.")
         print(f'{optimizer.load_state_dict(ckpt["optimizer"]) = }') if cfg.restore.restore_optimizer else print("Not restoring optimizer parameters.")
         print(f'{lr_scheduler.load_state_dict(ckpt["lr_scheduler"]) = }') if cfg.restore.restore_scheduler else print("Not restoring learning rate scheduler parameters.")
