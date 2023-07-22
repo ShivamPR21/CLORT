@@ -68,6 +68,11 @@ class ArgoCL(Dataset):
                 })
             self.n_tracks += len(tracks_in_log)
 
+        self.idx_to_tracks_map : Dict[str, Dict[int, str]] = {}
+        for log_id, dct in self.tracks.items():
+            self.idx_to_tracks_map.update({log_id : {idx : track_id for track_id, idx in dct.items()}
+                                           })
+
         # All frames and corresponding logs
         self.frames : Dict[str, List[str]] = {}
         self.sorted_logs = []
