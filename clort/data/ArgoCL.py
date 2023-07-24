@@ -174,9 +174,12 @@ class ArgoCL(Dataset):
         if self.max_objects is not None and n_det > self.max_objects:
             dets = np.random.choice(dets, size=self.max_objects, replace=False)
 
+        n_miss = 0
+
         for det in dets:
 
-            if self.random_miss is not None and np.random.rand() < self.random_miss:
+            if self.random_miss is not None and n_miss < len(dets)//2 and np.random.rand() < self.random_miss:
+                n_miss += 1
                 continue
 
             score = 1.
