@@ -16,6 +16,7 @@ class ArgoCL(Dataset):
                  temporal_overlap: int = 4,
                  max_objects: int | None = None,
                  target_cls: List[str] | None = None,
+                 detection_score_threshold: float | None = None,
                  # trunk-ignore(ruff/B006)
                  splits: List[str] = ['train1', 'train2', 'train3', 'train4'],
                  image : bool = True, pcl : bool = True, bbox : bool = True,
@@ -26,7 +27,8 @@ class ArgoCL(Dataset):
                  point_cloud_scaling: float = 1,
                  pivot_to_first_frame: bool = False,
                  vision_transform: Type[nn.Module] | None = None,
-                 pcl_transform: Type[nn.Module] | None = None) -> None:
+                 pcl_transform: Type[nn.Module] | None = None,
+                 random_miss: float | None = None) -> None:
         super().__init__()
 
         assert(temporal_horizon > temporal_overlap and temporal_horizon != temporal_overlap)
@@ -47,7 +49,9 @@ class ArgoCL(Dataset):
         self.vt = vision_transform
         self.pcl_tr = pcl_transform
         self.tgt_cls = target_cls
+        self.det_score = detection_score_threshold
         self.obj_cls : List[str] = target_cls if target_cls is not None else []
+        self.random_miss = random_miss
 
         # Get all log files
         self.log_files: List[h5py.File | h5py.Group] = []
@@ -98,6 +102,12 @@ class ArgoCL(Dataset):
             for in_frame_key in log[f'{log_id}/{frame}'].keys(): # type: ignore
                 if not in_frame_key.startswith('det'):
                     continue
+
+                #TODO@ShivamPR21: This line will be removed with next release of ArgoCL dataset
+                if self.det_score is not None and 'score' in log[f'{log_id}/{frame}/{in_frame_key}'].keys():
+                    det_score = np.asanyarray(log[f'{log_id}/{frame}/{in_frame_key}/score'], dtype=np.float32).item()
+                    if self.det_score > det_score:
+                        continue
 
                 track_id = np.asanyarray(log[f'{log_id}/{frame}/{in_frame_key}/track_id'], dtype=str).item()
                 obj_cls = np.asanyarray(log[f'{log_id}/{frame}/{in_frame_key}/cls'], dtype=str).item()
@@ -165,6 +175,20 @@ class ArgoCL(Dataset):
             dets = np.random.choice(dets, size=self.max_objects, replace=False)
 
         for det in dets:
+
+            if self.random_miss is not None and np.random.rand() < self.random_miss:
+                continue
+
+            score = 1.
+            if self.det_score is not None and 'score' in frame_log[f'{det}'].keys():
+                score = np.asanyarray(frame_log[f'{det}/score'], dtype=np.float32).item()
+                if self.det_score > score:
+                    continue
+
+            obj_cls = np.asanyarray(frame_log[f'{det}/cls'], dtype=str).item()
+            if self.tgt_cls is not None and obj_cls not in self.tgt_cls:
+                continue
+
             bbox = np.asanyarray(frame_log[f'{det}/bbox'], dtype=np.float32) if self.dt is not None or self.bx else None
 
             if self.dt is not None:
@@ -178,16 +202,17 @@ class ArgoCL(Dataset):
                 'bbox' : np.empty((0, 3)),
                 'track_idx' : -1,
                 'cls_idx' : -1,
+                'det_score': 1,
             }
-
-            obj_cls = np.asanyarray(frame_log[f'{det}/cls'], dtype=str).item()
-            if self.tgt_cls is not None and obj_cls not in self.tgt_cls:
-                continue
 
             cls_idx = self.obj_cls.index(obj_cls)
 
             det_data.update(
                 {'cls_idx' : cls_idx}
+            )
+
+            det_data.update(
+                {'det_score': score}
             )
 
             if pc:
