@@ -305,11 +305,11 @@ class ArgoCL(Dataset):
                 pivot = np.concatenate(pcls, axis=0).mean(axis=0, keepdims=True)
 
         if len(track_idxs) == 0:
-            return pcls, pcls_sz, imgs, imgs_sz, bboxs, track_idxs, cls_idxs, frame_sz
+            return pcls, pcls_sz, imgs, imgs_sz, bboxs, track_idxs, cls_idxs, frame_sz, pivot
 
         # Aggregate informations from all frames in temporal horizon
         if self.pc:
-            pcls = torch.from_numpy(np.concatenate(pcls, axis=0) - (pivot if pivot is not None else 0)) # Concatenate on points dimension
+            pcls = torch.from_numpy(np.concatenate(pcls, axis=0)) # Concatenate on points dimension
             pcls /= self.pc_scale
 
         if self.im:
@@ -327,7 +327,7 @@ class ArgoCL(Dataset):
             # bboxs = torch.cat(
             #     torch.from_numpy(np.concatenate(bboxs, axis=0)).unsqueeze(dim=0).split(8, dim=1),
             #     dim=0) # [num_dets, 8, 3] # Concatenation on points dimension
-            bboxs = torch.from_numpy(np.concatenate(bboxs, axis=0) - (pivot if pivot is not None else 0)).view(-1, 8, 3)
+            bboxs = torch.from_numpy(np.concatenate(bboxs, axis=0)).view(-1, 8, 3)
             bboxs /= self.pc_scale
 
         pcls_sz = np.array(pcls_sz, dtype=np.uint16) if len(pcls_sz) != 0 else []
@@ -336,7 +336,7 @@ class ArgoCL(Dataset):
         cls_idxs = np.array(cls_idxs, dtype=np.uint8)
         frame_sz = np.array(frame_sz, dtype=np.uint16)
 
-        return pcls, pcls_sz, imgs, imgs_sz, bboxs, track_idxs, cls_idxs, frame_sz
+        return pcls, pcls_sz, imgs, imgs_sz, bboxs, track_idxs, cls_idxs, frame_sz, pivot
 
     def __len__(self) -> int:
         return self.N
