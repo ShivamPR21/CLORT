@@ -18,20 +18,10 @@ class CLModel(nn.Module):
     def __init__(self, mv_backbone: str = 'small', mv_features: int | None = None, mv_xo: bool = False,
                  pc_features: int | None = None, bbox_aug: bool = True, pc_xo: bool = False,
                  mm_features: int | None = None, mm_xo: bool = False,
-                 mmc_features: int | None = None) -> None:
+                 mmc_features: int | None = None, mode: str = 'train' # 'infer'
+                 ) -> None:
         super().__init__()
 
-        self.out_dim: int | None = None
-        if mmc_features is not None:
-            self.out_dim = mmc_features
-        elif mm_features is not None:
-            self.out_dim = mm_features
-        elif pc_features is not None:
-            self.out_dim = pc_features
-        elif mv_features is not None:
-            self.out_dim = mv_features
-        else:
-            raise NotImplementedError("Encoder resolution failed.")
 
         print(f'Model Config: {mv_features = } \t {mv_xo = } \t {pc_features = } \t {bbox_aug = } \n'
               f'{pc_xo = } \t {mm_features = } \t {mm_xo = } \t {mmc_features = }')
@@ -69,10 +59,24 @@ class CLModel(nn.Module):
         mm_features = self.mm_enc.out_dim if self.mm_enc is not None else mm_features
 
         self.mmc_enc = CrossObjectEncoder(mm_features, mmc_features, norm_layer=norm_1d,
-                                          activation_layer=act) if (mm_features is not None and mmc_features is not None) else None
+                                          activation_layer=act, features_only=(mode == 'infer')) if (mm_features is not None and mmc_features is not None) else None
+
+        mmc_features = self.mmc_enc.out_dim if self.mmc_enc is not None else None
 
         print(f'Final model Config: {mv_features = } \t {mv_xo = } \t {pc_features = } \t {bbox_aug = } \n'
               f'{pc_xo = } \t {mm_features = } \t {mm_xo = } \t {mmc_features = }')
+
+        self.out_dim: int | None = None
+        if mmc_features is not None:
+            self.out_dim = mmc_features
+        elif mm_features is not None:
+            self.out_dim = mm_features
+        elif mv_features is not None:
+            self.out_dim = mv_features
+        else:
+            raise NotImplementedError("Encoder resolution failed.")
+
+        self.eps = 1e-9
 
     def forward(self, pcls: torch.Tensor | List[Any], pcls_sz: np.ndarray | List[Any],
                 imgs: torch.Tensor | List[Any], imgs_sz: torch.Tensor | List[Any],
@@ -84,5 +88,10 @@ class CLModel(nn.Module):
         mm_e = self.mm_enc(mv_e, pc_e, frame_sz) if self.mm_enc is not None else None
 
         mmc_e = self.mmc_enc(mm_e, frame_sz) if (self.mmc_enc is not None and mm_e is not None) else None
+
+        mv_e = mv_e/(mv_e.norm(dim=1, keepdim=True) + self.eps) if mv_e is not None else None
+        pc_e = pc_e/(pc_e.norm(dim=1, keepdim=True) + self.eps) if pc_e is not None else None
+        mm_e = mm_e/(mm_e.norm(dim=1, keepdim=True) + self.eps) if mm_e is not None else None
+        mmc_e = mmc_e/(mmc_e.norm(dim=1, keepdim=True) + self.eps) if mmc_e is not None else None
 
         return mv_e, pc_e, mm_e, mmc_e

@@ -33,11 +33,13 @@ class CrossObjectEncoder(nn.Module):
 
     def __init__(self, in_dim : int = 256, out_dim : int = 128,
                  norm_layer: Callable[..., nn.Module] | None = nn.LayerNorm,
-                 activation_layer: Callable[..., nn.Module] | None = nn.SELU) -> None:
+                 activation_layer: Callable[..., nn.Module] | None = nn.SELU,
+                 features_only: bool = False) -> None:
         super().__init__()
 
         self.eps = 1e-9
         self.in_dim, self.out_dim = in_dim, out_dim
+        self.features_only = features_only
 
         enc_layers = [512, 256, 128]
 
@@ -68,6 +70,8 @@ class CrossObjectEncoder(nn.Module):
         self.projection_head2 = LinearNormActivation(512, self.out_dim, bias=True,
                                                     norm_layer=None, activation_layer=None)
 
+        self.out_dim = 512 if self.features_only else self.out_dim
+
     def forward(self, obj_encs: torch.Tensor, n_nodes: np.ndarray) -> torch.Tensor:
         obj_encs = self.f_p1(obj_encs)
 
@@ -79,8 +83,9 @@ class CrossObjectEncoder(nn.Module):
 
         obj_encs = self.projection_head1(obj_encs)
 
-        obj_encs = self.projection_head2(obj_encs)
+        if not self.features_only:
+            obj_encs = self.projection_head2(obj_encs)
 
-        obj_encs = obj_encs/(obj_encs.norm(dim=1, keepdim=True) + self.eps)
+            obj_encs = obj_encs/(obj_encs.norm(dim=1, keepdim=True) + self.eps)
 
         return obj_encs
