@@ -25,7 +25,6 @@ class CLModel(nn.Module):
 
         print(f'Model Config: {mv_features = } \t {mv_xo = } \t {pc_features = } \t {bbox_aug = } \n'
               f'{pc_xo = } \t {mm_features = } \t {mm_xo = } \t {mmc_features = }')
-        print(f'Model Out Dims: {self.out_dim = }')
 
         norm_2d, norm_1d, act = nn.InstanceNorm2d, nn.LayerNorm, nn.SELU
 
@@ -75,6 +74,7 @@ class CLModel(nn.Module):
             self.out_dim = mv_features
         else:
             raise NotImplementedError("Encoder resolution failed.")
+        print(f'Model Out Dims: {self.out_dim = }')
 
         self.eps = 1e-9
 
