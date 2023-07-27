@@ -32,7 +32,7 @@ class CLModel(nn.Module):
         if mv_backbone == 'dla':
             norm_2d, norm_1d, act = nn.BatchNorm2d, nn.BatchNorm1d, nn.ReLU
             self.mv_enc = DLA34EncoderMV(out_dim=mv_features, enable_mv=True, enable_xo=mv_xo,
-                                         features_only=mm_features is not None or mmc_features is not None) if mv_features is not None else None
+                                         features_only=mm_features is not None or mmc_features is not None or (mode == 'infer')) if mv_features is not None else None
         else:
             assert(mv_backbone in ['small', 'medium', 'large'])
             self.mv_enc = MultiViewEncoder(out_dim=mv_features,
@@ -40,20 +40,20 @@ class CLModel(nn.Module):
                                             norm_1d=norm_1d,
                                             activation_layer=act,
                                             enable_xo=mv_xo,
-                                            features_only=mm_features is not None or mmc_features is not None,
+                                            features_only=mm_features is not None or mmc_features is not None or (mode == 'infer'),
                                             size=mv_backbone) if mv_features is not None else None
 
         self.pc_enc = PointCloudEncoder(out_dims=pc_features, bbox_aug=bbox_aug,
                                         norm_layer=norm_1d, activation_layer=act,
                                         offloading=False, enable_xo=pc_xo,
-                                        features_only=mm_features is not None or mmc_features is not None) if pc_features is not None else None
+                                        features_only=mm_features is not None or mmc_features is not None or (mode == 'infer')) if pc_features is not None else None
 
         mv_features = self.mv_enc.out_dim if self.mv_enc is not None else mv_features
         pc_features = self.pc_enc.out_dim if self.pc_enc is not None else pc_features
 
         self.mm_enc = MultiModalEncoder(mv_features, pc_features, mm_features, mm_features, norm_layer=norm_1d,
                                         activation_layer=act, enable_xo=mm_xo,
-                                        features_only=mmc_features is not None) if (mv_features is not None and pc_features is not None and mm_features is not None) else None
+                                        features_only=mmc_features is not None or (mode == 'infer')) if (mv_features is not None and pc_features is not None and mm_features is not None) else None
 
         mm_features = self.mm_enc.out_dim if self.mm_enc is not None else mm_features
 
